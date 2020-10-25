@@ -224,7 +224,7 @@ static const byte PROGMEM _hidReportSDVX[] = {
       uint32_t leds = (*bitfield|buttonsState);
       if (invert)
         leds = ~leds;
-      for(int i = 0; i < 9; i++) {
+      for(int i = 0; i < 7; i++) {
         if (leds>>i&1)
           digitalWrite(LightPins[i],HIGH);
         else

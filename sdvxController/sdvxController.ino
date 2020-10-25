@@ -9,7 +9,7 @@ SDVXHID_ SDVXHID;
 
 /* Buttons + Lights declarations */
 uint8_t LightPins[] = {7,10,11,12,13,8,9};
-uint8_t ButtonPins[] = {0,3,4,5,6,16,2};
+uint8_t ButtonPins[] = {0,3,4,5,6,1,2};
 uint8_t PotPins[] = {A5,A4};
 
 const byte ButtonCount = sizeof(ButtonPins) / sizeof(ButtonPins[0]);
@@ -135,7 +135,7 @@ void loop() {
 
 /* Light up button lights according to bitfield */
 void but_lights(uint16_t lightDesc) {
-  for (int i = 0; i < 9; i++) {
+  for (int i = 0; i < LightCount; i++) {
     if ((lightDesc >> i) & 1) {
       digitalWrite(LightPins[i], HIGH);
     }    else  {
