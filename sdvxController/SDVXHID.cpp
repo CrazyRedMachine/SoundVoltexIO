@@ -35,10 +35,10 @@ static const byte PROGMEM _hidReportSDVX[] = {
     /* axis */
     0x05, 0x01,                    /*    USAGE_PAGE (Generic Desktop) */
     0x09, 0x01,                    /*    USAGE (Pointer) */
-    0x16, 0x01, 0x80,              /*     LOGICAL_MINIMUM (-32767) */ 
-    0x26, 0xFF, 0x7F,              /*     LOGICAL_MAXIMUM (+32767) */
+    0x15, 0x00,              /*     LOGICAL_MINIMUM (0) */ 
+    0x25, 0xFF,              /*     LOGICAL_MAXIMUM (255) */
     0x95, 0x02,                    /*     REPORT_COUNT (2) */ 
-    0x75, 0x10,                    /*     REPORT_SIZE (16) */ 
+    0x75, 0x08,                    /*     REPORT_SIZE (8) */ 
     0xA1, 0x00,                    /*     COLLECTION (Physical) */
     0x09, 0x30,                    /*     USAGE (X) */
     0x09, 0x31,                    /*     USAGE (Y) */
@@ -233,13 +233,11 @@ static const byte PROGMEM _hidReportSDVX[] = {
     }
 
     int SDVXHID_::sendState(uint32_t buttonsState, uint32_t enc1, uint32_t enc2){
-      uint8_t data[7];
+      uint8_t data[5];
       data[0] = (uint8_t) 4; //report id
       data[1] = (uint8_t) (buttonsState & 0xFF);
       data[2] = (uint8_t) (buttonsState >> 8) & 0xFF;
-      data[4] = (uint8_t) (enc1 & 0xFF);
-      data[3] = (uint8_t) (enc1 >> 8) & 0xFF;
-      data[6] = (uint8_t) (enc2 & 0xFF);
-      data[5] = (uint8_t) (enc2 >> 8) & 0xFF;
-      return USB_Send(pluggedEndpoint | TRANSFER_RELEASE, data, 7);
+      data[3] = (uint8_t) (enc1>>2 & 0xFF);
+      data[4] = (uint8_t) (enc2>>2 & 0xFF);
+      return USB_Send(pluggedEndpoint | TRANSFER_RELEASE, data, 5);
     }

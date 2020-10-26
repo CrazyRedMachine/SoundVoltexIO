@@ -52,17 +52,17 @@ void setup() {
 /* LOOP */
 unsigned long lastReport = 0;
 uint32_t prevButtonsState = 0;
-  uint32_t encL = 0;
-  uint32_t encR = 0;
+uint32_t encL = 0;
+uint32_t encR = 0;
+
 bool modeChanged = false;
 void loop() {
   /* BUTTONS */
   uint32_t buttonsState = 0;
-  encL++;
-  encR++;
-  if (encL > 32767) encL = 0;
-  if (encR > 32767) encR = 0;
   
+  encL = analogRead(PotPins[0]);
+  encR = analogRead(PotPins[1]);
+
   for (int i = 0; i < ButtonCount; i++) {
        buttons[i].update();
        int value = buttons[i].read();   
