@@ -1,18 +1,24 @@
 #include "HID.h"
+#include <FastLED.h>
 
+#define SIDE_NUM_LEDS    9
 #define EPTYPE_DESCRIPTOR_SIZE    uint8_t
 
 class SDVXHID_ : public PluggableUSBModule {
 
   public:
     SDVXHID_(void);
-    
+
+    void initRGB();
+
+    void setRGB(CRGB left, CRGB right);
+    void updateSideLeds(CRGB base, uint32_t encL, uint32_t encR);
     /**
      * Updates the led status based on led_data (HID report received) and button states
      * param[in] buttonState bitfield with currently pressed buttons (used to force additional lights for mixed mode)
      * param[in] invert set to true to invert on/off status (used for invert lightmode)
      */
-    void updateLeds(uint32_t buttonsState, bool invert);
+    void updateLeds(uint32_t buttonsState, uint32_t encL, uint32_t encR, bool invert);
 
     /**
      * Sends the gamepad button states to the PC as an HID report

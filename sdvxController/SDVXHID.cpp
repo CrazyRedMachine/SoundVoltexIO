@@ -11,6 +11,9 @@
 #include "SDVXHID.h"
 
 byte extern LightPins[];
+CRGB extern left_leds[SIDE_NUM_LEDS];
+CRGB extern right_leds[SIDE_NUM_LEDS];
+
 
 /* HID DESCRIPTOR */
 static const byte PROGMEM _hidReportSDVX[] = {
@@ -119,9 +122,57 @@ static const byte PROGMEM _hidReportSDVX[] = {
     0x95, 0x01,                    /*       REPORT_COUNT (1) */ 
     0x91, 0x02,                    /*       OUTPUT (Data,Var,Abs) */ 
     0xc0,                          /*     END_COLLECTION */ 
-    /*  Reserved 25 bits */ 
+    /*Led 8 (dummy) */ 
+    0x05, 0x0a,                    /*     USAGE_PAGE (Ordinals) */ 
+    0x09, 0x08,                    /*     USAGE (Instance 7) */ 
+    0xa1, 0x02,                    /*     COLLECTION (Logical) */ 
+    0x05, 0x08,                    /*       USAGE_PAGE (LEDs) */ 
+    0x09, 0x4b,                    /*       USAGE (Generic Indicator 1) */ 
+    0x75, 0x01,                    /*       REPORT_SIZE (1) */ 
+    0x95, 0x01,                    /*       REPORT_COUNT (1) */ 
+    0x91, 0x02,                    /*       OUTPUT (Data,Var,Abs) */ 
+    0xc0,                          /*     END_COLLECTION */ 
+    /* Controller RGB R */ 
+    0x05, 0x0a,                    /*     USAGE_PAGE (Ordinals) */ 
+    0x09, 0x09,                    /*     USAGE (Instance 7) */ 
+    0xa1, 0x02,                    /*     COLLECTION (Logical) */ 
+    0x05, 0x08,                    /*       USAGE_PAGE (LEDs) */ 
+    0x09, 0x4b,                    /*       USAGE (Generic Indicator 1) */ 
+    0x75, 0x01,                    /*       REPORT_SIZE (1) */ 
+    0x95, 0x01,                    /*       REPORT_COUNT (1) */ 
+    0x91, 0x02,                    /*       OUTPUT (Data,Var,Abs) */ 
+    0xc0,                          /*     END_COLLECTION */ 
+            /*  Reserved 7 bits (spicetools workaround) */ 
     0x95, 0x01,            /*   REPORT_COUNT (1) */ 
-    0x75, 0x19,            /*   REPORT_SIZE (25) */ 
+    0x75, 0x07,            /*   REPORT_SIZE (7) */ 
+    0x91, 0x03,            /*   OUTPUT (Cnst,Var,Abs) */ 
+        /* Controller RGB G */ 
+    0x05, 0x0a,                    /*     USAGE_PAGE (Ordinals) */ 
+    0x09, 0x0a,                    /*     USAGE (Instance 7) */ 
+    0xa1, 0x02,                    /*     COLLECTION (Logical) */ 
+    0x05, 0x08,                    /*       USAGE_PAGE (LEDs) */ 
+    0x09, 0x4b,                    /*       USAGE (Generic Indicator 1) */ 
+    0x75, 0x01,                    /*       REPORT_SIZE (1) */ 
+    0x95, 0x01,                    /*       REPORT_COUNT (1) */ 
+    0x91, 0x02,                    /*       OUTPUT (Data,Var,Abs) */ 
+    0xc0,                          /*     END_COLLECTION */ 
+                /*  Reserved 7 bits (spicetools workaround) */ 
+    0x95, 0x01,            /*   REPORT_COUNT (1) */ 
+    0x75, 0x07,            /*   REPORT_SIZE (7) */ 
+    0x91, 0x03,            /*   OUTPUT (Cnst,Var,Abs) */ 
+        /* Controller RGB B */ 
+    0x05, 0x0a,                    /*     USAGE_PAGE (Ordinals) */ 
+    0x09, 0x0b,                    /*     USAGE (Instance 7) */ 
+    0xa1, 0x02,                    /*     COLLECTION (Logical) */ 
+    0x05, 0x08,                    /*       USAGE_PAGE (LEDs) */ 
+    0x09, 0x4b,                    /*       USAGE (Generic Indicator 1) */ 
+    0x75, 0x01,                    /*       REPORT_SIZE (1) */ 
+    0x95, 0x01,                    /*       REPORT_COUNT (1) */ 
+    0x91, 0x02,                    /*       OUTPUT (Data,Var,Abs) */ 
+    0xc0,                          /*     END_COLLECTION */ 
+            /*  Reserved 7 bits (spicetools workaround) */ 
+    0x95, 0x01,            /*   REPORT_COUNT (1) */ 
+    0x75, 0x07,            /*   REPORT_SIZE (7) */ 
     0x91, 0x03,            /*   OUTPUT (Cnst,Var,Abs) */ 
     /*Footer */ 
     0xc0                          /* END_COLLECTION */ 
@@ -193,6 +244,27 @@ static const byte PROGMEM _hidReportSDVX[] = {
     }
 
 /* CUSTOM SDVX FUNCTIONS */
+
+    void SDVXHID_::initRGB(){
+      FastLED.addLeds<WS2812, A1, GRB>(left_leds, SIDE_NUM_LEDS);
+      FastLED.addLeds<WS2812, A0, GRB>(right_leds, SIDE_NUM_LEDS);
+      FastLED.setBrightness( 0xFF );
+      delay(2000);
+      CRGB color = 0;
+      for (int i=0; i<SIDE_NUM_LEDS;i++){
+        left_leds[i] = color;
+        right_leds[i] = color;
+      }
+      FastLED.show();
+    }
+    
+    void SDVXHID_::setRGB(CRGB left, CRGB right){
+      for (int i=0; i<SIDE_NUM_LEDS;i++){
+        left_leds[i] = left;
+        right_leds[i] = right;
+      }
+      FastLED.show();
+    }
     
     uint8_t SDVXHID_::getLightMode(){
       return lightMode;
@@ -218,8 +290,76 @@ static const byte PROGMEM _hidReportSDVX[] = {
         *bitfield &= ~((uint32_t)0xFF<<24);
       }
     }
-    
-    void SDVXHID_::updateLeds(uint32_t buttonsState, bool invert){
+
+    void SDVXHID_::updateSideLeds(CRGB base, uint32_t encL, uint32_t encR){
+    static uint8_t circbuff_encL[5] = {0,0,0,0,0};
+  static uint32_t prev_encL = 0;
+  static int8_t encL_wp = 0;
+  static int8_t sumL = 0; 
+  
+  static uint8_t circbuff_encR[5] = {0,0,0,0,0};
+  static uint32_t prev_encR = 0;
+  static int8_t encR_wp = 0;
+  static int8_t sumR = 0; 
+  
+  static uint16_t blue = 0;
+  static uint16_t red = 0;
+
+  int val;
+  if (encL == prev_encL) val = 0;
+  else if (encL > prev_encL || prev_encL - encL > 1000 ) val = 1;
+  else val = -1;
+
+  sumL += -1*circbuff_encL[encL_wp];
+  sumL += val;
+  circbuff_encL[encL_wp++] = val;
+  if (encL_wp == 5) encL_wp = 0;
+
+  if (encR == prev_encR) val = 0;
+  else if (encR > prev_encR || prev_encR - encR > 1000 ) val = 1;
+  else val = -1;
+  
+  sumR += -1*circbuff_encR[encR_wp];
+  sumR += val;
+  circbuff_encR[encR_wp++] = val;
+  if (encR_wp == 5) encR_wp = 0;
+
+    /* compute blue and red shift */
+//left knob
+if (sumL > 4 || sumL < -4){
+    if (blue<508) {
+      blue+=2;
+    }
+    else blue = 510;
+  } else if (sumL < 2 && sumL > -2){
+    if (blue > 0) blue--;
+  }
+  prev_encL = encL;
+
+//right knob
+  if (sumR > 4 || sumR < -4){
+    if (red<508) {
+      red+=2;
+    }
+    else red = 510;
+  } else if (sumR < 2 && sumR > -2){
+    if (red > 0) red--;
+  }
+  prev_encR = encR;
+  
+  
+  //apply light
+      for (int i=0; i<9;i++){
+  left_leds[i].setRGB(red/2, 0, blue/2);
+  left_leds[i] += base;
+  right_leds[i].setRGB(red/2, 0, blue/2);
+  right_leds[i] += base;
+      }
+      
+      FastLED.show();
+    }
+     
+    void SDVXHID_::updateLeds(uint32_t buttonsState, uint32_t encL, uint32_t encR, bool invert){
       uint32_t* bitfield = (uint32_t*)&(led_data[1]);
       uint32_t leds = (*bitfield|buttonsState);
       if (invert)
@@ -230,6 +370,12 @@ static const byte PROGMEM _hidReportSDVX[] = {
         else
           digitalWrite(LightPins[i],LOW);
       }
+//controller leds 
+  CRGB color;
+  //spicetools workaround
+  color.setRGB((led_data[2]==0x01)?0xFF:led_data[2],(led_data[3]==0x01)?0xFF:led_data[3],(led_data[4]==0x01)?0xFF:led_data[4]);
+  updateSideLeds(color,encL,encR);
+   
     }
 
     int SDVXHID_::sendState(uint32_t buttonsState, uint32_t enc1, uint32_t enc2){
