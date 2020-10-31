@@ -28,7 +28,7 @@ static const byte PROGMEM _hidReportSDVX[] = {
     0x29, 0x09,                    /*     USAGE_MAXIMUM (Button 9)*/ 
     0x15, 0x00,                    /*     LOGICAL_MINIMUM (0) */ 
     0x25, 0x01,                    /*     LOGICAL_MAXIMUM (1) */
-    0x95, 0x09,                    /*     REPORT_COUNT (11) */ 
+    0x95, 0x09,                    /*     REPORT_COUNT (9) */ 
     0x75, 0x01,                    /*     REPORT_SIZE (1) */ 
     0x81, 0x02,                    /*     INPUT (Data,Var,Abs) */ 
     /* Reserved bits */ 
@@ -38,8 +38,8 @@ static const byte PROGMEM _hidReportSDVX[] = {
     /* axis */
     0x05, 0x01,                    /*    USAGE_PAGE (Generic Desktop) */
     0x09, 0x01,                    /*    USAGE (Pointer) */
-    0x15, 0x00,              /*     LOGICAL_MINIMUM (0) */ 
-    0x25, 0xFF,              /*     LOGICAL_MAXIMUM (255) */
+    0x15, 0x00,                    /*     LOGICAL_MINIMUM (0) */ 
+    0x26, 0xFF, 0x00,              /*     LOGICAL_MAXIMUM (255) */
     0x95, 0x02,                    /*     REPORT_COUNT (2) */ 
     0x75, 0x08,                    /*     REPORT_SIZE (8) */ 
     0xA1, 0x00,                    /*     COLLECTION (Physical) */
@@ -51,7 +51,7 @@ static const byte PROGMEM _hidReportSDVX[] = {
     /*Lights */
     0x85, 0x05,                    /*   REPORT_ID 5*/ 
     0x15, 0x00,                    /*     LOGICAL_MINIMUM (0) */ 
-    0x25, 0x01,                    /*     LOGICAL_MAXIMUM (1) */ 
+    0x25, 0x01,              /*     LOGICAL_MAXIMUM (255) */ 
     /*Led 1 */ 
     0x05, 0x0a,                    /*     USAGE_PAGE (Ordinals) */ 
     0x09, 0x01,                    /*     USAGE (Instance 1) */ 
@@ -138,42 +138,36 @@ static const byte PROGMEM _hidReportSDVX[] = {
     0xa1, 0x02,                    /*     COLLECTION (Logical) */ 
     0x05, 0x08,                    /*       USAGE_PAGE (LEDs) */ 
     0x09, 0x4b,                    /*       USAGE (Generic Indicator 1) */ 
-    0x75, 0x01,                    /*       REPORT_SIZE (1) */ 
+    0x15, 0x00,                    /*     LOGICAL_MINIMUM (0) */ 
+    0x26, 0xFF, 0x00,              /*     LOGICAL_MAXIMUM (255) */
+    0x75, 0x08,                    /*       REPORT_SIZE (1) */ 
     0x95, 0x01,                    /*       REPORT_COUNT (1) */ 
     0x91, 0x02,                    /*       OUTPUT (Data,Var,Abs) */ 
     0xc0,                          /*     END_COLLECTION */ 
-            /*  Reserved 7 bits (spicetools workaround) */ 
-    0x95, 0x01,            /*   REPORT_COUNT (1) */ 
-    0x75, 0x07,            /*   REPORT_SIZE (7) */ 
-    0x91, 0x03,            /*   OUTPUT (Cnst,Var,Abs) */ 
         /* Controller RGB G */ 
     0x05, 0x0a,                    /*     USAGE_PAGE (Ordinals) */ 
     0x09, 0x0a,                    /*     USAGE (Instance 7) */ 
     0xa1, 0x02,                    /*     COLLECTION (Logical) */ 
     0x05, 0x08,                    /*       USAGE_PAGE (LEDs) */ 
     0x09, 0x4b,                    /*       USAGE (Generic Indicator 1) */ 
-    0x75, 0x01,                    /*       REPORT_SIZE (1) */ 
+    0x15, 0x00,                    /*     LOGICAL_MINIMUM (0) */ 
+    0x26, 0xFF, 0x00,              /*     LOGICAL_MAXIMUM (255) */
+    0x75, 0x08,                    /*       REPORT_SIZE (1) */ 
     0x95, 0x01,                    /*       REPORT_COUNT (1) */ 
     0x91, 0x02,                    /*       OUTPUT (Data,Var,Abs) */ 
-    0xc0,                          /*     END_COLLECTION */ 
-                /*  Reserved 7 bits (spicetools workaround) */ 
-    0x95, 0x01,            /*   REPORT_COUNT (1) */ 
-    0x75, 0x07,            /*   REPORT_SIZE (7) */ 
-    0x91, 0x03,            /*   OUTPUT (Cnst,Var,Abs) */ 
+    0xc0,                          /*     END_COLLECTION */
         /* Controller RGB B */ 
     0x05, 0x0a,                    /*     USAGE_PAGE (Ordinals) */ 
     0x09, 0x0b,                    /*     USAGE (Instance 7) */ 
     0xa1, 0x02,                    /*     COLLECTION (Logical) */ 
     0x05, 0x08,                    /*       USAGE_PAGE (LEDs) */ 
     0x09, 0x4b,                    /*       USAGE (Generic Indicator 1) */ 
-    0x75, 0x01,                    /*       REPORT_SIZE (1) */ 
+    0x15, 0x00,                    /*     LOGICAL_MINIMUM (0) */ 
+    0x26, 0xFF, 0x00,              /*     LOGICAL_MAXIMUM (255) */
+    0x75, 0x08,                    /*       REPORT_SIZE (1) */ 
     0x95, 0x01,                    /*       REPORT_COUNT (1) */ 
     0x91, 0x02,                    /*       OUTPUT (Data,Var,Abs) */ 
     0xc0,                          /*     END_COLLECTION */ 
-            /*  Reserved 7 bits (spicetools workaround) */ 
-    0x95, 0x01,            /*   REPORT_COUNT (1) */ 
-    0x75, 0x07,            /*   REPORT_SIZE (7) */ 
-    0x91, 0x03,            /*   OUTPUT (Cnst,Var,Abs) */ 
     /*Footer */ 
     0xc0                          /* END_COLLECTION */ 
 };

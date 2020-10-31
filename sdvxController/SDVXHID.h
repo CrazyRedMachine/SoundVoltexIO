@@ -49,7 +49,7 @@ class SDVXHID_ : public PluggableUSBModule {
     /* timestamp of last received HID report for lightMode 3 */
     unsigned long lastHidUpdate = 0;
     /* byte array to receive HID reports from the PC */
-    byte led_data[5];
+    byte led_data[11];
     
     /* Implementation of the PUSBListNode */
     EPTYPE_DESCRIPTOR_SIZE epType[1];
