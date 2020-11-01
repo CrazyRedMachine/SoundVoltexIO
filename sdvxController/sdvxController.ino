@@ -21,7 +21,7 @@ Bounce buttons[ButtonCount];
 
 /* SETUP */
 void setup() {
-  Serial.begin(115200);
+  //Serial.begin(115200);
   // setup I/O for pins
   for (int i = 0; i < ButtonCount; i++) {
         buttons[i] = Bounce();
@@ -35,9 +35,6 @@ void setup() {
   
   uint8_t lightMode;
   EEPROM.get(0, lightMode);
-  Serial.print("got lightmode ");
-  Serial.print(lightMode);
-  Serial.println(" from eeprom");
   if (lightMode < 0 || lightMode > 3)
     lightMode = 2;
   SDVXHID.setLightMode(lightMode);

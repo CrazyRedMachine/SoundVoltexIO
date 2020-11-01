@@ -14,6 +14,8 @@ byte extern LightPins[];
 CRGB extern left_leds[SIDE_NUM_LEDS];
 CRGB extern right_leds[SIDE_NUM_LEDS];
 
+int8_t g_delta_enc1 = 0;
+int8_t g_delta_enc2 = 0;
 
 /* HID DESCRIPTOR */
 static const byte PROGMEM _hidReportSDVX[] = {
@@ -192,71 +194,35 @@ static const byte PROGMEM _hidReportSDVX[] = {
       }
     }
 
-#define FADE_RATE 384
+#define FADE_RATE 700
     /**
      * update controller led with HID base request + a color shifted value depending on knobs activity
      */
     static void updateSideLeds(CRGB base, int32_t encL, int32_t encR){
-
-      /* compute knob motion (value fluctuates a bit around -2/+2 when idling so 
-      I have to take this into account hence the whole sumL/sumR thing */
-      //TODO: I can probably take the info from the HID report filtering thing, setting a plus/minus flag for each enc
-      static uint8_t circbuff_encL[5] = {0,0,0,0,0};
-      static uint32_t prev_encL = 0;
-      static int8_t encL_wp = 0;
-      static int8_t sumL = 0; 
-  
-      static uint8_t circbuff_encR[5] = {0,0,0,0,0};
-      static uint32_t prev_encR = 0;
-      static int8_t encR_wp = 0;
-      static int8_t sumR = 0; 
-  
       static uint16_t blue = 0;
       static uint16_t red = 0;
-
-      int val;
-      if (encL == prev_encL) val = 0;
-      else if (encL > prev_encL || prev_encL - encL > 1000 ) val = 1;
-      else val = -1;
-
-      sumL += -1*circbuff_encL[encL_wp];
-      sumL += val;
-      circbuff_encL[encL_wp++] = val;
-      if (encL_wp == 5) encL_wp = 0;
-
-      if (encR == prev_encR) val = 0;
-      else if (encR > prev_encR || prev_encR - encR > 1000 ) val = 1;
-      else val = -1;
-  
-      sumR += -1*circbuff_encR[encR_wp];
-      sumR += val;
-      circbuff_encR[encR_wp++] = val;
-      if (encR_wp == 5) encR_wp = 0;
-
       /* Update blue/red shift amount according to knob motion */
+
       //left knob
-      if (sumL > 4 || sumL < -4){
+      if (g_delta_enc1 != 0){
         if (blue<FADE_RATE-2) {
           blue+=2;
         }
         else blue = FADE_RATE;
-      } else if (sumL < 2 && sumL > -2){
+      } else {
         if (blue > 0) blue--;
       }
-      prev_encL = encL;
 
       //right knob
-      if (sumR > 4 || sumR < -4){
+      if (g_delta_enc2 != 0){
         if (red<FADE_RATE-2) {
           red+=2;
         }
         else red = FADE_RATE;
-      } else if (sumR < 2 && sumR > -2){
+      } else {
         if (red > 0) red--;
       }
-      prev_encR = encR;
-  
-  
+        
       /* apply light */
       /* blueFactor is the ratio of blue shift, from 0 to 0.5 it'll deplete the red channel, then from 0.5 to 1 the green channel 
          redFactor is the same for blue then green */
@@ -310,11 +276,37 @@ static const byte PROGMEM _hidReportSDVX[] = {
       static int32_t prev_enc2 = 0;
       int32_t delta1 = enc1 - prev_enc1;
       int32_t delta2 = enc2 - prev_enc2;
+      static byte idle_counter_L = 0;
+      static byte idle_counter_R = 0;
+      
       if (delta1 >= -10 && delta1 <= 10)
         enc1 = prev_enc1;
       if (delta2 >= -10 && delta2 <= 10)
         enc2 = prev_enc2;
 
+      /* update global variable knob delta states */
+      if (enc1 == prev_enc1){
+        idle_counter_L++;
+        if (idle_counter_L == 100)
+        {
+          g_delta_enc1 = 0;
+          idle_counter_L = 0;
+        }
+      }
+      else if (enc1 > prev_enc1 || prev_enc1 - enc1 > 1000 ) g_delta_enc1 = 1;
+      else g_delta_enc1 = -1;
+      
+      if (enc2 == prev_enc2){
+        idle_counter_R++;
+        if (idle_counter_R == 100)
+        {
+          g_delta_enc2 = 0;
+          idle_counter_R = 0;
+        }
+      }
+      else if (enc2 > prev_enc2 || prev_enc2 - enc2 > 1000 ) g_delta_enc2 = 1;
+      else g_delta_enc2 = -1;
+      
       prev_enc1 = enc1;
       prev_enc2 = enc2;
 
