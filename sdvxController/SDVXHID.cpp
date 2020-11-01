@@ -192,75 +192,101 @@ static const byte PROGMEM _hidReportSDVX[] = {
       }
     }
 
-    void SDVXHID_::updateSideLeds(CRGB base, uint32_t encL, uint32_t encR){
-    static uint8_t circbuff_encL[5] = {0,0,0,0,0};
-  static uint32_t prev_encL = 0;
-  static int8_t encL_wp = 0;
-  static int8_t sumL = 0; 
-  
-  static uint8_t circbuff_encR[5] = {0,0,0,0,0};
-  static uint32_t prev_encR = 0;
-  static int8_t encR_wp = 0;
-  static int8_t sumR = 0; 
-  
-  static uint16_t blue = 0;
-  static uint16_t red = 0;
+#define FADE_RATE 384
+    /**
+     * update controller led with HID base request + a color shifted value depending on knobs activity
+     */
+    static void updateSideLeds(CRGB base, int32_t encL, int32_t encR){
 
-  int val;
-  if (encL == prev_encL) val = 0;
-  else if (encL > prev_encL || prev_encL - encL > 1000 ) val = 1;
-  else val = -1;
-
-  sumL += -1*circbuff_encL[encL_wp];
-  sumL += val;
-  circbuff_encL[encL_wp++] = val;
-  if (encL_wp == 5) encL_wp = 0;
-
-  if (encR == prev_encR) val = 0;
-  else if (encR > prev_encR || prev_encR - encR > 1000 ) val = 1;
-  else val = -1;
+      /* compute knob motion (value fluctuates a bit around -2/+2 when idling so 
+      I have to take this into account hence the whole sumL/sumR thing */
+      //TODO: I can probably take the info from the HID report filtering thing, setting a plus/minus flag for each enc
+      static uint8_t circbuff_encL[5] = {0,0,0,0,0};
+      static uint32_t prev_encL = 0;
+      static int8_t encL_wp = 0;
+      static int8_t sumL = 0; 
   
-  sumR += -1*circbuff_encR[encR_wp];
-  sumR += val;
-  circbuff_encR[encR_wp++] = val;
-  if (encR_wp == 5) encR_wp = 0;
+      static uint8_t circbuff_encR[5] = {0,0,0,0,0};
+      static uint32_t prev_encR = 0;
+      static int8_t encR_wp = 0;
+      static int8_t sumR = 0; 
+  
+      static uint16_t blue = 0;
+      static uint16_t red = 0;
 
-    /* compute blue and red shift */
-//left knob
-if (sumL > 4 || sumL < -4){
-    if (blue<508) {
-      blue+=2;
-    }
-    else blue = 510;
-  } else if (sumL < 2 && sumL > -2){
-    if (blue > 0) blue--;
-  }
-  prev_encL = encL;
+      int val;
+      if (encL == prev_encL) val = 0;
+      else if (encL > prev_encL || prev_encL - encL > 1000 ) val = 1;
+      else val = -1;
 
-//right knob
-  if (sumR > 4 || sumR < -4){
-    if (red<508) {
-      red+=2;
-    }
-    else red = 510;
-  } else if (sumR < 2 && sumR > -2){
-    if (red > 0) red--;
-  }
-  prev_encR = encR;
+      sumL += -1*circbuff_encL[encL_wp];
+      sumL += val;
+      circbuff_encL[encL_wp++] = val;
+      if (encL_wp == 5) encL_wp = 0;
+
+      if (encR == prev_encR) val = 0;
+      else if (encR > prev_encR || prev_encR - encR > 1000 ) val = 1;
+      else val = -1;
+  
+      sumR += -1*circbuff_encR[encR_wp];
+      sumR += val;
+      circbuff_encR[encR_wp++] = val;
+      if (encR_wp == 5) encR_wp = 0;
+
+      /* Update blue/red shift amount according to knob motion */
+      //left knob
+      if (sumL > 4 || sumL < -4){
+        if (blue<FADE_RATE-2) {
+          blue+=2;
+        }
+        else blue = FADE_RATE;
+      } else if (sumL < 2 && sumL > -2){
+        if (blue > 0) blue--;
+      }
+      prev_encL = encL;
+
+      //right knob
+      if (sumR > 4 || sumR < -4){
+        if (red<FADE_RATE-2) {
+          red+=2;
+        }
+        else red = FADE_RATE;
+      } else if (sumR < 2 && sumR > -2){
+        if (red > 0) red--;
+      }
+      prev_encR = encR;
   
   
-  //apply light
+      /* apply light */
+      /* blueFactor is the ratio of blue shift, from 0 to 0.5 it'll deplete the red channel, then from 0.5 to 1 the green channel 
+         redFactor is the same for blue then green */
+      float redL, greenL, blueL, redR, greenR, blueR;
+      float blueFactor = ((float)blue/(float)FADE_RATE);
+      float redFactor = ((float)red/(float)FADE_RATE);
+      float bgFactor = (blueFactor > 0.5)? blueFactor - 0.5 : 0;
+      float rgFactor = (redFactor > 0.5)? redFactor - 0.5 : 0;
+      
+      blueL = 2*blueFactor*base.r + 2*bgFactor*base.g + base.b;
+      if (blueL > 255) blueL = 255;
+      redL = (1-2*blueFactor)*base.r;
+      if (redL < 0) redL = 0;
+      greenL = (1-2*bgFactor)*base.g; // bgFactor is guaranteed to be within [0;0.5]
+      
+      blueR = (1-2*redFactor)*base.b;
+      if (blueR < 0) blueR = 0;
+      redR = base.r + 2*rgFactor*base.g + 2*redFactor*base.b;
+      if (redR > 255) redR = 255;
+      greenR = (1-2*rgFactor)*base.g;
+        
       for (int i=0; i<9;i++){
-  left_leds[i].setRGB(red/2, 0, blue/2);
-  left_leds[i] += base;
-  right_leds[i].setRGB(red/2, 0, blue/2);
-  right_leds[i] += base;
+        left_leds[i].setRGB(redL, greenL, blueL);           
+        right_leds[i].setRGB(redR, greenR, blueR);
       }
       
       FastLED.show();
     }
      
-    void SDVXHID_::updateLeds(uint32_t buttonsState, uint32_t encL, uint32_t encR, bool invert){
+    void SDVXHID_::updateLeds(uint32_t buttonsState, int32_t encL, int32_t encR, bool invert){
       uint32_t* bitfield = (uint32_t*)&(led_data[1]);
       uint32_t leds = (*bitfield|buttonsState);
       if (invert)
@@ -271,14 +297,28 @@ if (sumL > 4 || sumL < -4){
         else
           digitalWrite(LightPins[i],LOW);
       }
-//controller leds 
-  CRGB color;
-  color.setRGB(led_data[2],led_data[3],led_data[4]);
-  updateSideLeds(color,encL,encR);
-   
+
+      /* side leds */
+      CRGB color;
+      color.setRGB(led_data[2],led_data[3],led_data[4]);
+      updateSideLeds(color,encL,encR);  
     }
 
-    int SDVXHID_::sendState(uint32_t buttonsState, uint32_t enc1, uint32_t enc2){
+    int SDVXHID_::sendState(uint32_t buttonsState, int32_t enc1, int32_t enc2){
+      /* filtering small fluctuations (fix crazy stuttering cursor during attract mode loop) */
+      static int32_t prev_enc1 = 0; 
+      static int32_t prev_enc2 = 0;
+      int32_t delta1 = enc1 - prev_enc1;
+      int32_t delta2 = enc2 - prev_enc2;
+      if (delta1 >= -10 && delta1 <= 10)
+        enc1 = prev_enc1;
+      if (delta2 >= -10 && delta2 <= 10)
+        enc2 = prev_enc2;
+
+      prev_enc1 = enc1;
+      prev_enc2 = enc2;
+
+      /* send HID report */
       uint8_t data[5];
       data[0] = (uint8_t) 4; //report id
       data[1] = (uint8_t) (buttonsState & 0xFF);

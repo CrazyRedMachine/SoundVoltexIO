@@ -12,20 +12,22 @@ class SDVXHID_ : public PluggableUSBModule {
     void initRGB();
 
     void setRGB(CRGB left, CRGB right);
-    void updateSideLeds(CRGB base, uint32_t encL, uint32_t encR);
+    
     /**
      * Updates the led status based on led_data (HID report received) and button states
      * param[in] buttonState bitfield with currently pressed buttons (used to force additional lights for mixed mode)
+     * param[in] encL raw value for left knob (used for color shift)
+     * param[in] encR raw value for right knob (used for color shift)
      * param[in] invert set to true to invert on/off status (used for invert lightmode)
      */
-    void updateLeds(uint32_t buttonsState, uint32_t encL, uint32_t encR, bool invert);
+    void updateLeds(uint32_t buttonsState, int32_t encL, int32_t encR, bool invert);
 
     /**
      * Sends the gamepad button states to the PC as an HID report
      * param[in] buttonsState bitfield with currently pressed buttons
      * return USB_Send() return value
      */
-    int sendState(uint32_t buttonsState, uint32_t enc1, uint32_t enc2);
+    int sendState(uint32_t buttonsState, int32_t enc1, int32_t enc2);
 
     /**
      * Changes the lightMode if a received HID report asks for it

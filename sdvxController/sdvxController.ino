@@ -59,18 +59,18 @@ void setup() {
 /* LOOP */
 unsigned long lastReport = 0;
 uint32_t prevButtonsState = 0;
-uint32_t encL = 0;
-uint32_t encR = 0;
+int32_t encL = 0;
+int32_t encR = 0;
 
 bool modeChanged = false;
 void loop() {
   /* BUTTONS */
   uint32_t buttonsState = 0;
-  byte red, green, blue;
-  
+  int32_t delta;
+
   encL = analogRead(PotPins[0]);
   encR = analogRead(PotPins[1]);
-
+  
   for (int i = 0; i < ButtonCount; i++) {
        buttons[i].update();
        int value = buttons[i].read();   
@@ -202,8 +202,8 @@ if (sumL > 4 || sumL < -4){
   
   //apply light
       for (int i=0; i<9;i++){
-  left_leds[i].setRGB(red/2, 0, blue/2);
-  right_leds[i].setRGB(red/2, 0, blue/2);
+  left_leds[i].setRGB(red/4, 0, blue/2);
+  right_leds[i].setRGB(red/2, 0, blue/4);
       }
       
       FastLED.show();
