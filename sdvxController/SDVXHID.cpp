@@ -180,7 +180,7 @@ static const byte PROGMEM _hidReportSDVX[] = {
       }
     }
 
-#define FADE_RATE 700
+#define FADE_RATE 1023
     /**
      * update controller led with HID base request + a color shifted value depending on knobs activity
      */
@@ -191,22 +191,21 @@ static const byte PROGMEM _hidReportSDVX[] = {
 
       //left knob
       if (spinEncL != 0){
-        if (blue<FADE_RATE-2) {
-          blue+=2;
-        }
-        else blue = FADE_RATE;
+        if (blue<FADE_RATE)
+          blue++;
       } else {
-        if (blue > 0) blue--;
+        if (blue > 0)
+          blue--;
       }
 
       //right knob
       if (spinEncR != 0){
-        if (red<FADE_RATE-2) {
-          red+=2;
-        }
+        if (red<FADE_RATE)
+          red++;
         else red = FADE_RATE;
       } else {
-        if (red > 0) red--;
+        if (red > 0)
+          red--;
       }
       
       /* blueFactor is the ratio of blue shift, from 0 to 0.5 it'll deplete the red channel, then from 0.5 to 1 the green channel 
