@@ -12,15 +12,17 @@ class SDVXHID_ : public PluggableUSBModule {
     void initRGB();
 
     void setRGB(CRGB left, CRGB right);
-    
+
+    void updateSideLeds(CRGB base, int32_t encL, int32_t encR, bool hid);
     /**
-     * Updates the led status based on led_data (HID report received) and button states
+     * Updates the led status based on led_data (HID report received) and/or button states
      * param[in] buttonState bitfield with currently pressed buttons (used to force additional lights for mixed mode)
      * param[in] encL raw value for left knob (used for color shift)
      * param[in] encR raw value for right knob (used for color shift)
      * param[in] invert set to true to invert on/off status (used for invert lightmode)
+     * param[in] hid set to true to use hid led_data 
      */
-    void updateLeds(uint32_t buttonsState, int32_t encL, int32_t encR, bool invert);
+    void updateLeds(uint32_t buttonsState, int32_t encL, int32_t encR, bool invert, bool hid);
 
     /**
      * Sends the gamepad button states to the PC as an HID report
@@ -46,6 +48,10 @@ class SDVXHID_ : public PluggableUSBModule {
     unsigned long getLastHidUpdate();
     
   protected:
+    /* knob spin filtered direction (since idling makes the analogread go +/- 2 sometimes)
+       -1 (CCW spin) 0 (idle) +1 (CW spin) */
+    int8_t spinEncL = 0;
+    int8_t spinEncR = 0;
     /* current lightMode (0 = reactive, 1 = HID only, 2 = mixed (HID+reactive auto-switch), 3 = combined (HID+button presses), 4 = combined invert) */
     uint8_t lightMode = 2;
     /* timestamp of last received HID report for lightMode 3 */

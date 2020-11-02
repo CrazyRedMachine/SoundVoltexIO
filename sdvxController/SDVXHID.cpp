@@ -1,21 +1,8 @@
-/* Arduino-HID-Lighting-Library
- * 
- * This Arduino-HID-Lighting-Library is derived from Arduino-HID-Lighting, whose copyriht owner is mon.
- * More information about Arduino-HID-Lighting you can find under:
- * 
- * mon's Arduino-HID-Lighting
- * https://github.com/mon/Arduino-HID-Lighting
- * 
- * 2018 (C) Arduino-HID-Lighting-Library, Knuckleslee
-*/
 #include "SDVXHID.h"
 
 byte extern LightPins[];
 CRGB extern left_leds[SIDE_NUM_LEDS];
 CRGB extern right_leds[SIDE_NUM_LEDS];
-
-int8_t g_delta_enc1 = 0;
-int8_t g_delta_enc2 = 0;
 
 /* HID DESCRIPTOR */
 static const byte PROGMEM _hidReportSDVX[] = {
@@ -153,10 +140,9 @@ static const byte PROGMEM _hidReportSDVX[] = {
       FastLED.addLeds<WS2812, A0, GRB>(right_leds, SIDE_NUM_LEDS);
       FastLED.setBrightness( 0xFF );
       delay(2000);
-      CRGB color = 0;
       for (int i=0; i<SIDE_NUM_LEDS;i++){
-        left_leds[i] = color;
-        right_leds[i] = color;
+        left_leds[i] = CRGB::Black;
+        right_leds[i] = CRGB::Black;
       }
       FastLED.show();
     }
@@ -198,13 +184,13 @@ static const byte PROGMEM _hidReportSDVX[] = {
     /**
      * update controller led with HID base request + a color shifted value depending on knobs activity
      */
-    static void updateSideLeds(CRGB base, int32_t encL, int32_t encR){
+    void SDVXHID_::updateSideLeds(CRGB base, int32_t encL, int32_t encR, bool hid){
       static uint16_t blue = 0;
       static uint16_t red = 0;
       /* Update blue/red shift amount according to knob motion */
 
       //left knob
-      if (g_delta_enc1 != 0){
+      if (spinEncL != 0){
         if (blue<FADE_RATE-2) {
           blue+=2;
         }
@@ -214,7 +200,7 @@ static const byte PROGMEM _hidReportSDVX[] = {
       }
 
       //right knob
-      if (g_delta_enc2 != 0){
+      if (spinEncR != 0){
         if (red<FADE_RATE-2) {
           red+=2;
         }
@@ -222,13 +208,22 @@ static const byte PROGMEM _hidReportSDVX[] = {
       } else {
         if (red > 0) red--;
       }
-        
-      /* apply light */
+      
       /* blueFactor is the ratio of blue shift, from 0 to 0.5 it'll deplete the red channel, then from 0.5 to 1 the green channel 
          redFactor is the same for blue then green */
-      float redL, greenL, blueL, redR, greenR, blueR;
       float blueFactor = ((float)blue/(float)FADE_RATE);
       float redFactor = ((float)red/(float)FADE_RATE);
+      
+      /* apply light */
+      if (!hid){
+        CRGB left,right;
+        left.setRGB(255*redFactor/4, 0, 255*blueFactor/2);
+        right.setRGB(255*redFactor/2, 0, 255*blueFactor/4);
+        setRGB(left,right);
+        return;
+      }
+      /* HID color shift */
+      float redL, greenL, blueL, redR, greenR, blueR;
       float bgFactor = (blueFactor > 0.5)? blueFactor - 0.5 : 0;
       float rgFactor = (redFactor > 0.5)? redFactor - 0.5 : 0;
       
@@ -243,16 +238,14 @@ static const byte PROGMEM _hidReportSDVX[] = {
       redR = base.r + 2*rgFactor*base.g + 2*redFactor*base.b;
       if (redR > 255) redR = 255;
       greenR = (1-2*rgFactor)*base.g;
-        
-      for (int i=0; i<9;i++){
-        left_leds[i].setRGB(redL, greenL, blueL);           
-        right_leds[i].setRGB(redR, greenR, blueR);
-      }
-      
-      FastLED.show();
+
+      CRGB rgbL, rgbR;
+      rgbL.setRGB(redL, greenL, blueL);
+      rgbR.setRGB(redR, greenR, blueR);
+      setRGB(rgbL,rgbR);
     }
      
-    void SDVXHID_::updateLeds(uint32_t buttonsState, int32_t encL, int32_t encR, bool invert){
+    void SDVXHID_::updateLeds(uint32_t buttonsState, int32_t encL, int32_t encR, bool invert, bool hid){
       uint32_t* bitfield = (uint32_t*)&(led_data[1]);
       uint32_t leds = (*bitfield|buttonsState);
       if (invert)
@@ -265,9 +258,12 @@ static const byte PROGMEM _hidReportSDVX[] = {
       }
 
       /* side leds */
-      CRGB color;
-      color.setRGB(led_data[2],led_data[3],led_data[4]);
-      updateSideLeds(color,encL,encR);  
+      if (encL != 0 || encR != 0)
+      {
+        CRGB color;
+        color.setRGB(led_data[2],led_data[3],led_data[4]);
+        updateSideLeds(color,encL,encR,hid);
+      }
     }
 
     int SDVXHID_::sendState(uint32_t buttonsState, int32_t enc1, int32_t enc2){
@@ -279,33 +275,33 @@ static const byte PROGMEM _hidReportSDVX[] = {
       static byte idle_counter_L = 0;
       static byte idle_counter_R = 0;
       
-      if (delta1 >= -10 && delta1 <= 10)
+      if (delta1 >= -15 && delta1 <= 15)
         enc1 = prev_enc1;
-      if (delta2 >= -10 && delta2 <= 10)
+      if (delta2 >= -15 && delta2 <= 15)
         enc2 = prev_enc2;
 
-      /* update global variable knob delta states */
+      /* update knob spin values */
       if (enc1 == prev_enc1){
         idle_counter_L++;
         if (idle_counter_L == 100)
         {
-          g_delta_enc1 = 0;
+          spinEncL = 0;
           idle_counter_L = 0;
         }
       }
-      else if (enc1 > prev_enc1 || prev_enc1 - enc1 > 1000 ) g_delta_enc1 = 1;
-      else g_delta_enc1 = -1;
+      else if (enc1 > prev_enc1 || prev_enc1 - enc1 > 1000 ) spinEncL = 1;
+      else spinEncL = -1;
       
       if (enc2 == prev_enc2){
         idle_counter_R++;
         if (idle_counter_R == 100)
         {
-          g_delta_enc2 = 0;
+          spinEncR = 0;
           idle_counter_R = 0;
         }
       }
-      else if (enc2 > prev_enc2 || prev_enc2 - enc2 > 1000 ) g_delta_enc2 = 1;
-      else g_delta_enc2 = -1;
+      else if (enc2 > prev_enc2 || prev_enc2 - enc2 > 1000 ) spinEncR = 1;
+      else spinEncR = -1;
       
       prev_enc1 = enc1;
       prev_enc2 = enc2;
