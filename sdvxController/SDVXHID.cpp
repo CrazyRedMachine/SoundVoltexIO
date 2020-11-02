@@ -180,7 +180,7 @@ static const byte PROGMEM _hidReportSDVX[] = {
       }
     }
 
-#define FADE_RATE 1023
+#define FADE_RATE 512
     /**
      * update controller led with HID base request + a color shifted value depending on knobs activity
      */
@@ -208,35 +208,31 @@ static const byte PROGMEM _hidReportSDVX[] = {
           red--;
       }
       
-      /* blueFactor is the ratio of blue shift, from 0 to 0.5 it'll deplete the red channel, then from 0.5 to 1 the green channel 
-         redFactor is the same for blue then green */
+      /* blue/red factor is a [0;1] value representing the ratio of blue/red shift
+      (0 means no change with respect to base color, 1 means full blue/red instead */
       float blueFactor = ((float)blue/(float)FADE_RATE);
       float redFactor = ((float)red/(float)FADE_RATE);
       
       /* apply light */
       if (!hid){
         CRGB left,right;
-        left.setRGB(255*redFactor/4, 0, 255*blueFactor/2);
-        right.setRGB(255*redFactor/2, 0, 255*blueFactor/4);
+        left.setRGB(255*redFactor/2, 0, 255*blueFactor);
+        right.setRGB(255*redFactor, 0, 255*blueFactor/2);
         setRGB(left,right);
         return;
       }
       /* HID color shift */
       float redL, greenL, blueL, redR, greenR, blueR;
-      float bgFactor = (blueFactor > 0.5)? blueFactor - 0.5 : 0;
-      float rgFactor = (redFactor > 0.5)? redFactor - 0.5 : 0;
       
-      blueL = 2*blueFactor*base.r + 2*bgFactor*base.g + base.b;
+      redL = (1-blueFactor)*base.r;
+      greenL = (1-blueFactor)*base.g;
+      blueL = blueFactor*base.r + blueFactor*base.g + base.b;
       if (blueL > 255) blueL = 255;
-      redL = (1-2*blueFactor)*base.r;
-      if (redL < 0) redL = 0;
-      greenL = (1-2*bgFactor)*base.g; // bgFactor is guaranteed to be within [0;0.5]
       
-      blueR = (1-2*redFactor)*base.b;
-      if (blueR < 0) blueR = 0;
-      redR = base.r + 2*rgFactor*base.g + 2*redFactor*base.b;
+      redR = base.r + redFactor*base.g + redFactor*base.b;
       if (redR > 255) redR = 255;
-      greenR = (1-2*rgFactor)*base.g;
+      greenR = (1-redFactor)*base.g;
+      blueR = (1-redFactor)*base.b;
 
       CRGB rgbL, rgbR;
       rgbL.setRGB(redL, greenL, blueL);
