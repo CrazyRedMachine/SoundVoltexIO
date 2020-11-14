@@ -8,7 +8,7 @@ TODO
 
 # Acknowledgments
 
-This basically started as a fork of my (pop'n music controller)[https://github.com/CrazyRedMachine/UltimatePopnController/]
+This basically started as a fork of my [pop'n music controller](https://github.com/CrazyRedMachine/UltimatePopnController/)
 
 # Supported devices and requirements
 
