@@ -7,6 +7,7 @@
 #define MILLIDEBOUNCE 5
 SDVXHID_ SDVXHID;
 
+#define REACTIVE_FALLBACK (millis()-SDVXHID.getLastHidUpdate()) <= 3000
 /* Buttons + Lights declarations */
 uint8_t LightPins[] = {7,10,11,12,13,8,9};
 //start a b c d fx-l fx-r service test
@@ -37,7 +38,7 @@ void setup() {
   
   uint8_t lightMode;
   EEPROM.get(0, lightMode);
-  if (lightMode < 0 || lightMode > 3)
+  if (lightMode < 0 || lightMode > 5)
     lightMode = 2;
   SDVXHID.setLightMode(lightMode);
 
@@ -90,7 +91,7 @@ void loop() {
   uint8_t mode = SDVXHID.getLightMode();
   /* mixed mode will behave sometimes like HID, sometimes like reactive */
   if (mode == 2){
-      if ((millis()-SDVXHID.getLastHidUpdate()) > 3000)
+      if (REACTIVE_FALLBACK)
         mode = 0;
       else
         mode = 1;
@@ -103,7 +104,7 @@ void loop() {
       break;
     /* HID mode, only based on received HID data */
     case 1:
-      SDVXHID.updateLeds(0, false, true, true);
+      SDVXHID.updateLeds(0, false, false, true);
       break;
     /* Combined inverse mode, received HID data and button state are combined then inverted */
     case 4:
@@ -111,7 +112,7 @@ void loop() {
       break;
     /* Combined mode, received HID data and button state are combined */
     case 3:
-      SDVXHID.updateLeds(buttonsState & 0x1ff, false, true, true);
+      SDVXHID.updateLeds(buttonsState & 0x1ff, false, true, REACTIVE_FALLBACK);
       break;
     /* Reactive Rainbow edition */
     case 5:

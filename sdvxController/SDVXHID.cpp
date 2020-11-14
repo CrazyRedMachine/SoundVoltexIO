@@ -190,7 +190,6 @@ static const byte PROGMEM _hidReportSDVX[] = {
       if (*mode < 6) {
         setLightMode(*mode);
         mode_data[1] = 0xFF;
-        FastLED.setBrightness(0xFF);
       }
      }
 
@@ -198,9 +197,16 @@ static const byte PROGMEM _hidReportSDVX[] = {
     /**
      * update controller led with HID base request + a color shifted value depending on knobs activity
      */
-    void SDVXHID_::updateSideLeds(CRGB base, bool hid){
+    void SDVXHID_::updateSideLeds(CRGB base, bool knobs, bool hid){
       static uint16_t blue = 0;
       static uint16_t red = 0;
+
+      if (!knobs)
+      {
+        setRGB(base,base);
+        return;      
+      }
+      
       /* Update blue/red shift amount according to knob motion */
 
       //left knob
@@ -267,11 +273,15 @@ static const byte PROGMEM _hidReportSDVX[] = {
       }
 
       /* side leds */
-      if (knobs)
+      if (knobs || hid)
       {
         CRGB color;
-        color.setRGB(led_data[3],led_data[4],led_data[5]);
-        updateSideLeds(color,hid);
+        if (invert) 
+          color.setRGB(0xFF-led_data[3],0xFF-led_data[4],0xFF-led_data[5]);
+        else
+          color.setRGB(led_data[3],led_data[4],led_data[5]);
+        
+        updateSideLeds(color,knobs,hid);
       }
     }
 
@@ -339,6 +349,8 @@ static const byte PROGMEM _hidReportSDVX[] = {
         if (spinR) fill_rainbow(right_leds, SIDE_NUM_LEDS-1, spinR*thisHue, 15); 
         else fill_solid(right_leds, SIDE_NUM_LEDS, CRGB::Red);
         FastLED.show();
+
+        FastLED.setBrightness(0xFF);
       }
     }
 
