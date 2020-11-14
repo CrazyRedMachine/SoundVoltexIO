@@ -57,7 +57,6 @@ void setup() {
 
 /* LOOP */
 unsigned long lastReport = 0;
-uint32_t prevButtonsState = 0;
 int32_t encL = 0;
 int32_t encR = 0;
 
@@ -65,7 +64,6 @@ bool modeChanged = false;
 void loop() {
   /* BUTTONS */
   uint32_t buttonsState = 0;
-  int32_t delta;
 
   encL = analogRead(PotPins[0]);
   encR = analogRead(PotPins[1]);
@@ -86,10 +84,6 @@ void loop() {
   {
     SDVXHID.sendState(buttonsState, encL, encR);
     lastReport = micros();
-    prevButtonsState = buttonsState; 
-    
-    //check for HID-requested lightmode change
-    SDVXHID.updateLightMode();
   }  
   
   /* LAMPS */
@@ -101,7 +95,6 @@ void loop() {
       else
         mode = 1;
   }
-  //mode = 5;
   switch (mode)
   {
     /* Reactive mode, locally determined lamp data */
@@ -122,7 +115,7 @@ void loop() {
       break;
     /* Reactive Rainbow edition */
     case 5:
-      SDVXHID.rainbowLeds(buttonsState & 0x1ff, encL, encR);
+      SDVXHID.rainbowLeds(buttonsState & 0x1ff);
       break;
     default:
       break;

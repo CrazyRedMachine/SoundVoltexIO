@@ -39,7 +39,7 @@ static const byte PROGMEM _hidReportSDVX[] = {
   0xC0,              //   End Collection (analog axis)
 
   0x85, 0x05,        //   Report ID (5)
-      /* up to 9 button leds */
+      /* up to 9 button leds (will require soldering additional headers on leonardo) */
     0x05, 0x09,        //     Usage Page (Buttons)
     0x19, 0x01,        //     Usage Minimum (0x01)
     0x29, 0x09,        //     Usage Maximum (0x07)
@@ -48,7 +48,7 @@ static const byte PROGMEM _hidReportSDVX[] = {
     0x95, 0x09,        //     Report Count (7)
     0x75, 0x01,        //     Report Size (1)
     0x91, 0x02,        //     Output (Data,Var,Abs,No Wrap,Linear,Preferred State,No Null Position,Non-volatile)
-      /* 7 bits padding (also used for HID modeswitch trick) */
+      /* 7 bits padding */
     0x95, 0x01,        //     Report Count (1)
     0x75, 0x07,        //     Report Size (9)
     0x91, 0x03,        //     Input (Const,Var,Abs,No Wrap,Linear,Preferred State,No Null Position)
@@ -67,6 +67,12 @@ static const byte PROGMEM _hidReportSDVX[] = {
       0x09, 0x4B,        //       Usage (Generic Indicator)
       0x91, 0x02,        //     Input (Data,Var,Abs,No Wrap,Linear,Preferred State,No Null Position)
     0xC0,              //   End Collection (RGB led)
+
+    /* HID modeswitch request (no usage page etc so it's not picked up by the tools) */
+  0x85, 0x06,        //   Report ID (6)
+    0x95, 0x01,        //     Report Count (1)
+    0x75, 0x08,        //     Report Size (9)
+    0x91, 0x03,        //     Input (Const,Var,Abs,No Wrap,Linear,Preferred State,No Null Position)
     
 0xC0  // End Collection (Gamepad)
 
@@ -122,6 +128,11 @@ static const byte PROGMEM _hidReportSDVX[] = {
             USB_RecvControl(led_data, 6);
             return true;
           }
+          else if (setup.wValueH == HID_REPORT_TYPE_OUTPUT && setup.wLength == 2){
+            USB_RecvControl(mode_data, 2);
+            updateLightMode();
+            return true;
+          }
         }
       }
 
@@ -143,7 +154,6 @@ static const byte PROGMEM _hidReportSDVX[] = {
       FastLED.addLeds<WS2812, A1, GRB>(left_leds, SIDE_NUM_LEDS);
       FastLED.addLeds<WS2812, A0, GRB>(right_leds, SIDE_NUM_LEDS);
       FastLED.setBrightness( 0xFF );
-      delay(2000);
       for (int i=0; i<SIDE_NUM_LEDS;i++){
         left_leds[i] = CRGB::Black;
         right_leds[i] = CRGB::Black;
@@ -176,13 +186,13 @@ static const byte PROGMEM _hidReportSDVX[] = {
     }
     
     void SDVXHID_::updateLightMode(){
-      uint32_t* bitfield = (uint32_t*)&(led_data[1]);
-      if (*bitfield>>12&1){
-        uint8_t mode = (*bitfield>>8) & 0x0F;
-        setLightMode(mode); 
-        *bitfield &= ~((uint32_t)0x7F<<8);
+      uint8_t* mode = (uint8_t*)&(mode_data[1]);
+      if (*mode < 6) {
+        setLightMode(*mode);
+        mode_data[1] = 0xFF;
+        FastLED.setBrightness(0xFF);
       }
-    }
+     }
 
 #define FADE_RATE 512
     /**
@@ -249,7 +259,7 @@ static const byte PROGMEM _hidReportSDVX[] = {
       uint32_t leds = (*bitfield|buttonsState);
       if (invert)
         leds = ~leds;
-      for(int i = 0; i < 7; i++) {
+      for(int i = 0; i < NUM_BUT_LEDS; i++) {
         if (leds>>i&1)
           digitalWrite(LightPins[i],HIGH);
         else
@@ -265,11 +275,11 @@ static const byte PROGMEM _hidReportSDVX[] = {
       }
     }
 
-    void SDVXHID_::rainbowLeds(uint32_t buttonsState, int32_t encL, int32_t encR){
+    void SDVXHID_::rainbowLeds(uint32_t buttonsState){
       uint32_t* bitfield = (uint32_t*)&(led_data[1]);
       uint32_t leds = (*bitfield|buttonsState);
       
-      for(int i = 0; i < 7; i++) {
+      for(int i = 0; i < NUM_BUT_LEDS; i++) {
         if (leds>>i&1)
           digitalWrite(LightPins[i],HIGH);
         else
@@ -277,7 +287,7 @@ static const byte PROGMEM _hidReportSDVX[] = {
       }
 
       /* side leds */
-      if (encL != 0 || encR != 0)
+      if (true)
       {
         static uint16_t blue = 0;
         static uint16_t red = 0;
@@ -324,9 +334,9 @@ static const byte PROGMEM _hidReportSDVX[] = {
         uint8_t thisHue = beat8(50,255);                     // A simple rainbow march.
         FastLED.setBrightness(brightness);
        
-        if (spinL) fill_rainbow(left_leds, SIDE_NUM_LEDS, spinL*thisHue, 15); 
+        if (spinL) fill_rainbow(left_leds, SIDE_NUM_LEDS-1, spinL*thisHue, 15); 
         else fill_solid(left_leds, SIDE_NUM_LEDS, CRGB::Blue);
-        if (spinR) fill_rainbow(right_leds, SIDE_NUM_LEDS, spinR*thisHue, 15); 
+        if (spinR) fill_rainbow(right_leds, SIDE_NUM_LEDS-1, spinR*thisHue, 15); 
         else fill_solid(right_leds, SIDE_NUM_LEDS, CRGB::Red);
         FastLED.show();
       }
@@ -337,7 +347,7 @@ static const byte PROGMEM _hidReportSDVX[] = {
       uint32_t* bitfield = (uint32_t*)&(led_data[1]);
       uint32_t leds = (*bitfield|buttonsState);
       
-      for(int i = 0; i < 7; i++) {
+      for(int i = 0; i < NUM_BUT_LEDS; i++) {
         if (leds>>i&1)
           digitalWrite(LightPins[i],HIGH);
         else
@@ -438,13 +448,14 @@ static const byte PROGMEM _hidReportSDVX[] = {
       int32_t delta2 = enc2 - prev_enc2;
       static byte idle_counter_L = 0;
       static byte idle_counter_R = 0;
-      
+
+      /* send same value as previous report if it's only small change */
       if (delta1 >= -15 && delta1 <= 15)
         enc1 = prev_enc1;
       if (delta2 >= -15 && delta2 <= 15)
         enc2 = prev_enc2;
 
-      /* update knob spin values */
+      /* now enc1&enc2 are filtered this is also a good moment to update the spin values ( -1;0;1 ) */
       if (enc1 == prev_enc1){
         idle_counter_L++;
         if (idle_counter_L == 100)
@@ -470,7 +481,7 @@ static const byte PROGMEM _hidReportSDVX[] = {
       prev_enc1 = enc1;
       prev_enc2 = enc2;
 
-      /* send HID report */
+      /* finally, send HID report */
       uint8_t data[5];
       data[0] = (uint8_t) 4; //report id
       data[1] = (uint8_t) (buttonsState & 0xFF);

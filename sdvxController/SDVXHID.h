@@ -2,6 +2,7 @@
 #include <FastLED.h>
 
 #define SIDE_NUM_LEDS    9
+#define NUM_BUT_LEDS     7         
 #define EPTYPE_DESCRIPTOR_SIZE    uint8_t
 
 class SDVXHID_ : public PluggableUSBModule {
@@ -13,7 +14,7 @@ class SDVXHID_ : public PluggableUSBModule {
 
     void setRGB(CRGB left, CRGB right);
 
-    void rainbowLeds(uint32_t buttonsState, int32_t encL, int32_t encR);
+    void rainbowLeds(uint32_t buttonsState);
 
     void tcLeds(uint32_t buttonsState, int32_t encL, int32_t encR);
     
@@ -60,7 +61,8 @@ class SDVXHID_ : public PluggableUSBModule {
     /* timestamp of last received HID report for lightMode 3 */
     unsigned long lastHidUpdate = 0;
     /* byte array to receive HID reports from the PC */
-    byte led_data[7];
+    byte led_data[6];
+    byte mode_data[2];
     
     /* Implementation of the PUSBListNode */
     EPTYPE_DESCRIPTOR_SIZE epType[1];
