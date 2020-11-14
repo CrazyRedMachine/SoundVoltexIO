@@ -9,7 +9,8 @@ SDVXHID_ SDVXHID;
 
 /* Buttons + Lights declarations */
 uint8_t LightPins[] = {7,10,11,12,13,8,9};
-uint8_t ButtonPins[] = {0,3,4,5,6,1,2};
+//start a b c d fx-l fx-r service test
+uint8_t ButtonPins[] = {0,3,4,5,6,1,2,A3,A2};
 uint8_t PotPins[] = {A5,A4};
 //uint8_t RGBPins[] = {A1,A0}; //must be changed directly inside SDVXHID.cpp in initRGB() method
 CRGB left_leds[SIDE_NUM_LEDS];
@@ -22,7 +23,7 @@ Bounce buttons[ButtonCount];
 
 /* SETUP */
 void setup() {
-  //Serial.begin(115200);
+  Serial.begin(115200);
   // setup I/O for pins
   for (int i = 0; i < ButtonCount; i++) {
         buttons[i] = Bounce();
@@ -87,8 +88,8 @@ void loop() {
     lastReport = micros();
     prevButtonsState = buttonsState; 
     
-    //check for HID-requested lightmode change (TODO:will require descriptor expansion or magicbytes inside RGB values)
-    //SDVXHID.updateLightMode();
+    //check for HID-requested lightmode change
+    SDVXHID.updateLightMode();
   }  
   
   /* LAMPS */
@@ -100,47 +101,52 @@ void loop() {
       else
         mode = 1;
   }
+  //mode = 5;
   switch (mode)
   {
     /* Reactive mode, locally determined lamp data */
     case 0:
-      SDVXHID.updateLeds(buttonsState & 0x1ff, encL, encR, false, false);
+      SDVXHID.updateLeds(buttonsState & 0x1ff, false, true, false);
       break;
     /* HID mode, only based on received HID data */
     case 1:
-      SDVXHID.updateLeds(0, encL, encR, false, true);
+      SDVXHID.updateLeds(0, false, true, true);
       break;
     /* Combined inverse mode, received HID data and button state are combined then inverted */
     case 4:
-      SDVXHID.updateLeds(buttonsState & 0x1ff, encL, encR, true, true);
+      SDVXHID.updateLeds(buttonsState & 0x1ff, true, true, true);
       break;
     /* Combined mode, received HID data and button state are combined */
     case 3:
-      SDVXHID.updateLeds(buttonsState & 0x1ff, encL, encR, false, true);
+      SDVXHID.updateLeds(buttonsState & 0x1ff, false, true, true);
+      break;
+    /* Reactive Rainbow edition */
+    case 5:
+      SDVXHID.rainbowLeds(buttonsState & 0x1ff, encL, encR);
       break;
     default:
       break;
   }
 
   /* MANUAL LIGHTMODE UPDATE */
- /* if ( buttonsState & 1024 ) {
+  if ( buttonsState & 128 ) {
     if ( (buttonsState & 2) && (modeChanged == false)) {
       modeChanged = true;
       uint8_t mode = SDVXHID.getLightMode()+1;
-      if (mode > 4) mode = 0;
+      if (mode > 5) mode = 0;
       SDVXHID.setLightMode(mode);
       EEPROM.put(0, mode);
     }
     else if (!(buttonsState&2)) {
       modeChanged = false;
     }
-  }*/
+  }
 }
 
 /* Display animation on the cab according to a bitfield array */
 void animate(uint16_t* tab, uint8_t n, int mswait) {
   for (int i = 0; i < n; i++) {
-    SDVXHID.updateLeds(tab[i], 0, 0, false, false);
+    SDVXHID.updateLeds(tab[i], false, false, false);
     delay(mswait);
   }
 }

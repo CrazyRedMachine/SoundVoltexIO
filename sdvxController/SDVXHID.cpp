@@ -39,15 +39,19 @@ static const byte PROGMEM _hidReportSDVX[] = {
   0xC0,              //   End Collection (analog axis)
 
   0x85, 0x05,        //   Report ID (5)
-      /* 8 button leds (no led for test button) */
+      /* up to 9 button leds */
     0x05, 0x09,        //     Usage Page (Buttons)
     0x19, 0x01,        //     Usage Minimum (0x01)
-    0x29, 0x08,        //     Usage Maximum (0x08)
+    0x29, 0x09,        //     Usage Maximum (0x07)
     0x15, 0x00,        //     Logical Minimum (0)
     0x25, 0x01,        //     Logical Maximum (1)
-    0x95, 0x08,        //     Report Count (8)
+    0x95, 0x09,        //     Report Count (7)
     0x75, 0x01,        //     Report Size (1)
     0x91, 0x02,        //     Output (Data,Var,Abs,No Wrap,Linear,Preferred State,No Null Position,Non-volatile)
+      /* 7 bits padding (also used for HID modeswitch trick) */
+    0x95, 0x01,        //     Report Count (1)
+    0x75, 0x07,        //     Report Size (9)
+    0x91, 0x03,        //     Input (Const,Var,Abs,No Wrap,Linear,Preferred State,No Null Position)
     
       /* 1 rgb controller led (with 0-255 values for red green and blue) */
     0x05, 0x08,        //     Usage Page (LEDs)
@@ -113,9 +117,9 @@ static const byte PROGMEM _hidReportSDVX[] = {
       
       if (requestType == REQUEST_HOSTTODEVICE_CLASS_INTERFACE) {
         if (request == HID_SET_REPORT) {
-          if(setup.wValueH == HID_REPORT_TYPE_OUTPUT && setup.wLength == 5){
+          if(setup.wValueH == HID_REPORT_TYPE_OUTPUT && setup.wLength == 6){
             lastHidUpdate = millis();
-            USB_RecvControl(led_data, 5);
+            USB_RecvControl(led_data, 6);
             return true;
           }
         }
@@ -164,7 +168,7 @@ static const byte PROGMEM _hidReportSDVX[] = {
     }
     
     void SDVXHID_::setLightMode(uint8_t mode){
-      if ((mode > 4) || (mode < 0)) {
+      if ((mode > 5) || (mode < 0)) {
         lightMode = 2;
         return;
       }
@@ -173,10 +177,10 @@ static const byte PROGMEM _hidReportSDVX[] = {
     
     void SDVXHID_::updateLightMode(){
       uint32_t* bitfield = (uint32_t*)&(led_data[1]);
-      if (*bitfield>>28&1){
-        uint8_t mode = (*bitfield>>24) & 0x0F;
+      if (*bitfield>>12&1){
+        uint8_t mode = (*bitfield>>8) & 0x0F;
         setLightMode(mode); 
-        *bitfield &= ~((uint32_t)0xFF<<24);
+        *bitfield &= ~((uint32_t)0x7F<<8);
       }
     }
 
@@ -184,7 +188,7 @@ static const byte PROGMEM _hidReportSDVX[] = {
     /**
      * update controller led with HID base request + a color shifted value depending on knobs activity
      */
-    void SDVXHID_::updateSideLeds(CRGB base, int32_t encL, int32_t encR, bool hid){
+    void SDVXHID_::updateSideLeds(CRGB base, bool hid){
       static uint16_t blue = 0;
       static uint16_t red = 0;
       /* Update blue/red shift amount according to knob motion */
@@ -240,7 +244,7 @@ static const byte PROGMEM _hidReportSDVX[] = {
       setRGB(rgbL,rgbR);
     }
      
-    void SDVXHID_::updateLeds(uint32_t buttonsState, int32_t encL, int32_t encR, bool invert, bool hid){
+    void SDVXHID_::updateLeds(uint32_t buttonsState, bool invert, bool knobs, bool hid){
       uint32_t* bitfield = (uint32_t*)&(led_data[1]);
       uint32_t leds = (*bitfield|buttonsState);
       if (invert)
@@ -253,14 +257,179 @@ static const byte PROGMEM _hidReportSDVX[] = {
       }
 
       /* side leds */
-      if (encL != 0 || encR != 0)
+      if (knobs)
       {
         CRGB color;
-        color.setRGB(led_data[2],led_data[3],led_data[4]);
-        updateSideLeds(color,encL,encR,hid);
+        color.setRGB(led_data[3],led_data[4],led_data[5]);
+        updateSideLeds(color,hid);
       }
     }
 
+    void SDVXHID_::rainbowLeds(uint32_t buttonsState, int32_t encL, int32_t encR){
+      uint32_t* bitfield = (uint32_t*)&(led_data[1]);
+      uint32_t leds = (*bitfield|buttonsState);
+      
+      for(int i = 0; i < 7; i++) {
+        if (leds>>i&1)
+          digitalWrite(LightPins[i],HIGH);
+        else
+          digitalWrite(LightPins[i],LOW);
+      }
+
+      /* side leds */
+      if (encL != 0 || encR != 0)
+      {
+        static uint16_t blue = 0;
+        static uint16_t red = 0;
+        static int8_t spinL = 0;
+        static int8_t spinR = 0;
+        
+        /* Update blue/red shift amount according to knob motion */
+
+        //left knob
+        if (spinEncL != 0){
+          if (blue<FADE_RATE)
+            blue++;
+        } else {
+          if (blue > 0)
+            blue--;
+        }
+
+        //right knob
+        if (spinEncR != 0){
+          if (red<FADE_RATE)
+            red++;
+          else red = FADE_RATE;
+        } else {
+          if (red > 0)
+            red--;
+        }
+
+        /* compute spinL/spinR (which are spinEncL/R but with a cooldown on the 0 */
+        if (spinEncL != 0)
+          spinL = spinEncL;
+        if (spinEncR != 0)
+          spinR = spinEncR;
+        if (red == 0)
+          spinR = 0;
+        if (blue == 0)
+          spinL = 0;
+                
+        /* blue/red factor is a [0;1] value representing the ratio of blue/red shift
+        (0 means no change with respect to base color, 1 means full blue/red instead */
+        float blueFactor = ((float)blue/(float)FADE_RATE);
+        float redFactor = ((float)red/(float)FADE_RATE);
+        float brightness = 255*(blueFactor > redFactor ? blueFactor:redFactor);
+        /* apply light */
+        uint8_t thisHue = beat8(50,255);                     // A simple rainbow march.
+        FastLED.setBrightness(brightness);
+       
+        if (spinL) fill_rainbow(left_leds, SIDE_NUM_LEDS, spinL*thisHue, 15); 
+        else fill_solid(left_leds, SIDE_NUM_LEDS, CRGB::Blue);
+        if (spinR) fill_rainbow(right_leds, SIDE_NUM_LEDS, spinR*thisHue, 15); 
+        else fill_solid(right_leds, SIDE_NUM_LEDS, CRGB::Red);
+        FastLED.show();
+      }
+    }
+
+    byte pos[] = {7,6,5,4,3,2,1,0,9,10,11,12,13,14,15,16};
+    void SDVXHID_::tcLeds(uint32_t buttonsState, int32_t encL, int32_t encR){
+      uint32_t* bitfield = (uint32_t*)&(led_data[1]);
+      uint32_t leds = (*bitfield|buttonsState);
+      
+      for(int i = 0; i < 7; i++) {
+        if (leds>>i&1)
+          digitalWrite(LightPins[i],HIGH);
+        else
+          digitalWrite(LightPins[i],LOW);
+      }
+
+      /* side leds */
+      if (encL != 0 || encR != 0)
+      {
+        static uint16_t blue = 0;
+        static uint16_t red = 0;
+        /* Update blue/red shift amount according to knob motion */
+
+        //left knob
+        if (spinEncL != 0){
+          if (blue<FADE_RATE)
+            blue++;
+        } else {
+          if (blue > 0)
+            blue--;
+        }
+
+        //right knob
+        if (spinEncR != 0){
+          if (red<FADE_RATE)
+            red++;
+          else red = FADE_RATE;
+        } else {
+          if (red > 0)
+            red--;
+        }
+      
+        /* blue/red factor is a [0;1] value representing the ratio of blue/red shift
+        (0 means no change with respect to base color, 1 means full blue/red instead */
+        float blueFactor = ((float)blue/(float)FADE_RATE);
+        float redFactor = ((float)red/(float)FADE_RATE);
+        float brightness = 255*(blueFactor > redFactor ? blueFactor:redFactor);
+        /* apply light */
+        //uint8_t thisHue = beat8(50,255);                     // A simple rainbow march.
+        FastLED.setBrightness(brightness);
+        static int bluepos = 0;
+        static int redpos = 15;
+        static int bluePosMod = 0;
+        static int redPosMod = 0;
+        static int prevSpinEncL = 0;
+        static int prevSpinEncR = 0;
+        if (spinEncL == prevSpinEncL){
+          bluePosMod++;
+          if (bluePosMod == 50){
+            bluePosMod = 0;
+            bluepos += spinEncL;
+            if (bluepos<0) bluepos = 0;
+            if (bluepos>15) bluepos = 15; 
+          }
+        } else bluePosMod--;
+        if (bluePosMod < 0) bluePosMod = 0;
+        if (spinEncR == prevSpinEncR){
+          redPosMod++;
+          if (redPosMod == 50){
+            redPosMod = 0;
+            redpos += spinEncR;
+            if (redpos<0) redpos = 0;
+            if (redpos>15) redpos = 15;
+          }
+        } else redPosMod--;
+        if (redPosMod < 0) redPosMod = 0;
+        
+        prevSpinEncR = spinEncR;
+        prevSpinEncL = spinEncL;
+        
+        fill_solid(left_leds, SIDE_NUM_LEDS, CRGB::Black);
+        fill_solid(right_leds, SIDE_NUM_LEDS, CRGB::Black);
+
+        if (spinEncL !=0){
+        if (pos[bluepos]>7) right_leds[pos[bluepos]-8] += CRGB::Blue;
+        else left_leds[pos[bluepos]] += CRGB::Blue;
+        }
+        if (spinEncR != 0){
+        if (pos[redpos]>7) right_leds[pos[redpos]-8] += CRGB::Red;
+        else left_leds[pos[redpos]] += CRGB::Red;
+        }
+//        fill_rainbow(left_leds, SIDE_NUM_LEDS, spinEncL*thisHue, 15); 
+//        fill_rainbow(right_leds, SIDE_NUM_LEDS, spinEncR*thisHue, 15); 
+        FastLED.show();
+/*          CRGB left,right;
+          left.setRGB(255*redFactor/2, 0, 255*blueFactor);
+          right.setRGB(255*redFactor, 0, 255*blueFactor/2);
+          setRGB(left,right);
+  */      
+      }
+    }
+    
     int SDVXHID_::sendState(uint32_t buttonsState, int32_t enc1, int32_t enc2){
       /* filtering small fluctuations (fix crazy stuttering cursor during attract mode loop) */
       static int32_t prev_enc1 = 0; 

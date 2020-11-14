@@ -13,16 +13,19 @@ class SDVXHID_ : public PluggableUSBModule {
 
     void setRGB(CRGB left, CRGB right);
 
-    void updateSideLeds(CRGB base, int32_t encL, int32_t encR, bool hid);
+    void rainbowLeds(uint32_t buttonsState, int32_t encL, int32_t encR);
+
+    void tcLeds(uint32_t buttonsState, int32_t encL, int32_t encR);
+    
+    void updateSideLeds(CRGB base, bool hid);
     /**
      * Updates the led status based on led_data (HID report received) and/or button states
      * param[in] buttonState bitfield with currently pressed buttons (used to force additional lights for mixed mode)
-     * param[in] encL raw value for left knob (used for color shift)
-     * param[in] encR raw value for right knob (used for color shift)
      * param[in] invert set to true to invert on/off status (used for invert lightmode)
+     * param[in] knobs set to true to use knob activity for color shift
      * param[in] hid set to true to use hid led_data 
      */
-    void updateLeds(uint32_t buttonsState, int32_t encL, int32_t encR, bool invert, bool hid);
+    void updateLeds(uint32_t buttonsState, bool invert, bool knobs, bool hid);
 
     /**
      * Sends the gamepad button states to the PC as an HID report
@@ -57,7 +60,7 @@ class SDVXHID_ : public PluggableUSBModule {
     /* timestamp of last received HID report for lightMode 3 */
     unsigned long lastHidUpdate = 0;
     /* byte array to receive HID reports from the PC */
-    byte led_data[11];
+    byte led_data[7];
     
     /* Implementation of the PUSBListNode */
     EPTYPE_DESCRIPTOR_SIZE epType[1];
