@@ -28,7 +28,7 @@ Because it is meant for an arcade cab panel, the knobs are potentiometers rather
 
 ## Light modes
 
-There are 6 different modes :
+There are 7 different modes :
 
 ### Reactive mode
 
@@ -55,6 +55,10 @@ This is like the Combined mode except ON and OFF states are switched around, and
 ### Rainbow mode
 
 This is kinda like Combined mode except the knobs make rainbow patterns marching in the knob direction.
+
+### TC mode
+
+This is kinda like Combined mode except the knobs make blue and red patterns marching in the knob direction.
 
 ## Switching lightmodes
 
