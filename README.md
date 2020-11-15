@@ -70,4 +70,4 @@ TODO: I included pre-compiled binaries and sources in the "ModeSwitch" folder. R
 
 Arduino Leonardo has 5V logic therefore one can directly connect 5V leds to it.
 
-![pinout](https://github.com/CrazyRedMachine/UltimatePopnController/blob/master/pinout_leonardo.png?raw=true)
+![pinout](https://github.com/CrazyRedMachine/SoundVoltexIO/blob/main/pinout_leonardo.png?raw=true)
