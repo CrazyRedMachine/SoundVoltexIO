@@ -64,7 +64,7 @@ This is kinda like Combined mode except the knobs make blue and red patterns mar
 
 You can either press BT-A while holding service to switch between modes, or you can request a mode change with an HID message, which is incredibly useful in a multiboot environment as you can set the proper lightmode from the commandline before launching a game.
 
-TODO: I included pre-compiled binaries and sources in the "ModeSwitch" folder. Refer to readme.md inside that folder for more details.
+I included pre-compiled binaries and sources in the "ModeSwitch" folder. Refer to readme.md inside that folder for more details.
 
 # Pinout
 
