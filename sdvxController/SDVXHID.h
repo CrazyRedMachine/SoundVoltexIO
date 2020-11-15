@@ -2,7 +2,8 @@
 #include <FastLED.h>
 
 #define SIDE_NUM_LEDS    9
-#define NUM_BUT_LEDS     7         
+#define NUM_BUT_LEDS     7  
+#define NUM_LIGHT_MODES  7
 #define EPTYPE_DESCRIPTOR_SIZE    uint8_t
 
 class SDVXHID_ : public PluggableUSBModule {
@@ -15,8 +16,8 @@ class SDVXHID_ : public PluggableUSBModule {
     void setRGB(CRGB left, CRGB right);
 
     void rainbowLeds(uint32_t buttonsState);
-
-    void tcLeds(uint32_t buttonsState, int32_t encL, int32_t encR);
+    
+    void tcLeds(uint32_t buttonsState);
     
     void updateSideLeds(CRGB base, bool invert, bool knobs, bool hid);
     /**

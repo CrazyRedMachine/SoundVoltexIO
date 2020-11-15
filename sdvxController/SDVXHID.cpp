@@ -178,7 +178,7 @@ static const byte PROGMEM _hidReportSDVX[] = {
     }
     
     void SDVXHID_::setLightMode(uint8_t mode){
-      if ((mode > 5) || (mode < 0)) {
+      if ((mode >= NUM_LIGHT_MODES) || (mode < 0)) {
         lightMode = 2;
         return;
       }
@@ -187,7 +187,7 @@ static const byte PROGMEM _hidReportSDVX[] = {
     
     void SDVXHID_::updateLightMode(){
       uint8_t* mode = (uint8_t*)&(mode_data[1]);
-      if (*mode < 6) {
+      if (*mode < NUM_LIGHT_MODES) {
         setLightMode(*mode);
         mode_data[1] = 0xFF;
       }
@@ -361,20 +361,42 @@ static const byte PROGMEM _hidReportSDVX[] = {
         float brightness = 255*(blueFactor > redFactor ? blueFactor:redFactor);
         /* apply light */
         uint8_t thisHue = beat8(50,255);                     // A simple rainbow march.
+        
+        if (brightness == 0)
+        {
+          CRGB color;
+          color.setRGB(led_data[3],led_data[4],led_data[5]);
+          setRGB(color, color);
+        }
+        else
+        {
         FastLED.setBrightness(brightness);
-       
+
+        if (blueFactor != 0){
         if (spinL) fill_rainbow(left_leds, SIDE_NUM_LEDS-1, spinL*thisHue, 15); 
         else fill_solid(left_leds, SIDE_NUM_LEDS, CRGB::Blue);
+        } else {
+          CRGB color;
+          color.setRGB(led_data[3],led_data[4],led_data[5]);
+          fill_solid(left_leds, SIDE_NUM_LEDS, color);
+        }
+        if (redFactor != 0){
         if (spinR) fill_rainbow(right_leds, SIDE_NUM_LEDS-1, spinR*thisHue, 15); 
         else fill_solid(right_leds, SIDE_NUM_LEDS, CRGB::Red);
+        } else {
+          CRGB color;
+          color.setRGB(led_data[3],led_data[4],led_data[5]);
+          fill_solid(right_leds, SIDE_NUM_LEDS, color);
+        }
+        }
         FastLED.show();
-
+  
         FastLED.setBrightness(0xFF);
       }
     }
 
     byte pos[] = {7,6,5,4,3,2,1,0,9,10,11,12,13,14,15,16};
-    void SDVXHID_::tcLeds(uint32_t buttonsState, int32_t encL, int32_t encR){
+    void SDVXHID_::tcLeds(uint32_t buttonsState){
       uint32_t* bitfield = (uint32_t*)&(led_data[1]);
       uint32_t leds = (*bitfield|buttonsState);
       
@@ -386,8 +408,6 @@ static const byte PROGMEM _hidReportSDVX[] = {
       }
 
       /* side leds */
-      if (encL != 0 || encR != 0)
-      {
         static uint16_t blue = 0;
         static uint16_t red = 0;
         /* Update blue/red shift amount according to knob motion */
@@ -417,7 +437,6 @@ static const byte PROGMEM _hidReportSDVX[] = {
         float redFactor = ((float)red/(float)FADE_RATE);
         float brightness = 255*(blueFactor > redFactor ? blueFactor:redFactor);
         /* apply light */
-        //uint8_t thisHue = beat8(50,255);                     // A simple rainbow march.
         FastLED.setBrightness(brightness);
         static int bluepos = 0;
         static int redpos = 15;
@@ -459,16 +478,9 @@ static const byte PROGMEM _hidReportSDVX[] = {
         if (spinEncR != 0){
         if (pos[redpos]>7) right_leds[pos[redpos]-8] += CRGB::Red;
         else left_leds[pos[redpos]] += CRGB::Red;
-        }
-//        fill_rainbow(left_leds, SIDE_NUM_LEDS, spinEncL*thisHue, 15); 
-//        fill_rainbow(right_leds, SIDE_NUM_LEDS, spinEncR*thisHue, 15); 
+        } 
         FastLED.show();
-/*          CRGB left,right;
-          left.setRGB(255*redFactor/2, 0, 255*blueFactor);
-          right.setRGB(255*redFactor, 0, 255*blueFactor/2);
-          setRGB(left,right);
-  */      
-      }
+      
     }
     
     int SDVXHID_::sendState(uint32_t buttonsState, int32_t enc1, int32_t enc2){

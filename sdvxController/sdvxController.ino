@@ -38,7 +38,7 @@ void setup() {
   
   uint8_t lightMode;
   EEPROM.get(0, lightMode);
-  if (lightMode < 0 || lightMode > 5)
+  if (lightMode < 0 || lightMode >= NUM_LIGHT_MODES)
     lightMode = 2;
   SDVXHID.setLightMode(lightMode);
 
@@ -117,6 +117,10 @@ void loop() {
     /* Reactive Rainbow edition */
     case 5:
       SDVXHID.rainbowLeds(buttonsState & 0x1ff);
+      break;    
+    /* Fake TC edition */
+    case 6:
+      SDVXHID.tcLeds(buttonsState & 0x1ff);
       break;
     default:
       break;
@@ -127,7 +131,7 @@ void loop() {
     if ( (buttonsState & 2) && (modeChanged == false)) {
       modeChanged = true;
       uint8_t mode = SDVXHID.getLightMode()+1;
-      if (mode > 5) mode = 0;
+      if (mode == NUM_LIGHT_MODES) mode = 0;
       SDVXHID.setLightMode(mode);
       EEPROM.put(0, mode);
     }
