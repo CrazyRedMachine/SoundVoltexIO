@@ -218,7 +218,7 @@ void SDVXHID_::update_knobs_param(){
         red--;
     }
 
-    /* compute spinL/spinR (which are spinEncL/R but with a cooldown on the 0 */
+    /* compute spinL/spinR (which are spinEncL/R but with a cooldown on the 0 so there's inertia in rainbow/tc */
     if (spinEncL != 0)
       knobs_param.spinL = spinEncL;
     if (spinEncR != 0)
@@ -405,24 +405,24 @@ void SDVXHID_::update_knobs_param(){
         if (posB <= SIDE_NUM_LEDS-2)
         {
           pFirstLEDL[(SIDE_NUM_LEDS-1)-posB] += rgb;
-          if (spinL == -1) {
+          /*if (spinL == -1) {
             CRGB fade;
-            fade.b = posB * 180/(2*SIDE_NUM_LEDS-4);
+            fade.b = 0; //(float)posB * 50./(SIDE_NUM_LEDS/2);
             fade.r = 0;
             fade.g = 0;
             pFirstLEDR[1] += fade;
-          }
+          }*/
         }
         else 
         {
           pFirstLEDR[posB-(SIDE_NUM_LEDS-2)] += rgb;
-          if (spinL == 1) {
+          /*if (spinL == 1) {
             CRGB fade;
             fade.r = 0;
             fade.g = 0;
-            fade.b = ((2*SIDE_NUM_LEDS-4)-posB) * 180/(2*SIDE_NUM_LEDS-4);
+            fade.b = 0; //(float)((2*SIDE_NUM_LEDS-4)-posB) * 50./(SIDE_NUM_LEDS/2);
             pFirstLEDL[1] += fade;
-          }
+          }*/
         }
       }
       
@@ -434,24 +434,24 @@ void SDVXHID_::update_knobs_param(){
         if (posR <= SIDE_NUM_LEDS-2)
         {
           pFirstLEDL[(SIDE_NUM_LEDS-1)-posR] += rgb;
-          if (spinR == -1) {
+          /*if (spinR == -1) {
             CRGB fader;
             fader.g = 0;
             fader.b = 0;
-            fader.r = (float)posR * 180./(2.*(float)(SIDE_NUM_LEDS-2));
+            fader.r = 0; //(float)posR * 50./(SIDE_NUM_LEDS/2);
             pFirstLEDR[1] += fader;
-          }
+          }*/
         }
         else 
         {
           pFirstLEDR[posR-(SIDE_NUM_LEDS-2)] += rgb;
-          if (spinR == 1) {
+          /*if (spinR == 1) {
             CRGB fader;
             fader.g = 0;
             fader.b = 0;
-            fader.r = (float)((2*SIDE_NUM_LEDS-4)-posR) * 180./(2.*(float)(SIDE_NUM_LEDS-2));
+            fader.r = 0; //(float)((2*SIDE_NUM_LEDS-4)-posR) * 50./(SIDE_NUM_LEDS/2);
             pFirstLEDL[1] += fader;
-          }
+          }*/
         }
       }
       
