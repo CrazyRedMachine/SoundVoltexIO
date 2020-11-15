@@ -6,6 +6,14 @@
 #define NUM_LIGHT_MODES  7
 #define EPTYPE_DESCRIPTOR_SIZE    uint8_t
 
+typedef struct knob_param_s {
+  float blueFactor;
+  float redFactor;
+  float brightness;
+  int8_t spinL;
+  int8_t spinR;
+} knob_param_t;
+
 class SDVXHID_ : public PluggableUSBModule {
 
   public:
@@ -57,6 +65,10 @@ class SDVXHID_ : public PluggableUSBModule {
        -1 (CCW spin) 0 (idle) +1 (CW spin) */
     int8_t spinEncL = 0;
     int8_t spinEncR = 0;
+
+    /* knob shift parameters */
+    knob_param_t knobs_param;
+    
     /* current lightMode (0 = reactive, 1 = HID only, 2 = mixed (HID+reactive auto-switch), 3 = combined (HID+button presses), 4 = combined invert) */
     uint8_t lightMode = 2;
     /* timestamp of last received HID report for lightMode 3 */
@@ -64,6 +76,8 @@ class SDVXHID_ : public PluggableUSBModule {
     /* byte array to receive HID reports from the PC */
     byte led_data[6];
     byte mode_data[2];
+    
+    void update_knobs_param();
     
     /* Implementation of the PUSBListNode */
     EPTYPE_DESCRIPTOR_SIZE epType[1];

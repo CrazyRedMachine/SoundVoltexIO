@@ -194,6 +194,48 @@ static const byte PROGMEM _hidReportSDVX[] = {
      }
 
 #define FADE_RATE 512
+void SDVXHID_::update_knobs_param(){
+    static uint16_t blue = 0;
+    static uint16_t red = 0;
+      
+    /* Update blue/red shift amount according to knob motion */
+
+    //left knob
+    if (spinEncL != 0){
+      if (blue<FADE_RATE)
+        blue++;
+    } else {
+      if (blue > 0)
+        blue--;
+    }
+
+    //right knob
+    if (spinEncR != 0){
+      if (red<FADE_RATE)
+        red++;
+    } else {
+      if (red > 0)
+        red--;
+    }
+
+    /* compute spinL/spinR (which are spinEncL/R but with a cooldown on the 0 */
+    if (spinEncL != 0)
+      knobs_param.spinL = spinEncL;
+    if (spinEncR != 0)
+      knobs_param.spinR = spinEncR;
+    if (red == 0)
+      knobs_param.spinR = 0;
+    if (blue == 0)
+      knobs_param.spinL = 0;
+                
+    /* blue/red factor is a [0;1] value representing the ratio of blue/red shift
+    (0 means no change with respect to base color, 1 means full blue/red instead */
+    knobs_param.blueFactor = ((float)blue/(float)FADE_RATE);
+    knobs_param.redFactor = ((float)red/(float)FADE_RATE);
+    /* brightness is just max between blueFactor or redFactor, scaled to 0xFF */
+    knobs_param.brightness = 255*(knobs_param.blueFactor > knobs_param.redFactor ? knobs_param.blueFactor:knobs_param.redFactor);  
+}
+
     /**
      * update controller led with HID base request + a color shifted value depending on knobs activity
      */
@@ -214,36 +256,13 @@ static const byte PROGMEM _hidReportSDVX[] = {
       }
       
       /* Update blue/red shift amount according to knob motion */
-
-      //left knob
-      if (spinEncL != 0){
-        if (blue<FADE_RATE)
-          blue++;
-      } else {
-        if (blue > 0)
-          blue--;
-      }
-
-      //right knob
-      if (spinEncR != 0){
-        if (red<FADE_RATE)
-          red++;
-        else red = FADE_RATE;
-      } else {
-        if (red > 0)
-          red--;
-      }
-      
-      /* blue/red factor is a [0;1] value representing the ratio of blue/red shift
-      (0 means no change with respect to base color, 1 means full blue/red instead */
-      float blueFactor = ((float)blue/(float)FADE_RATE);
-      float redFactor = ((float)red/(float)FADE_RATE);
+      update_knobs_param();
 
       /* apply light */
       if (!hid){
         CRGB left,right;
-        left.setRGB(255*redFactor/2, 0, 255*blueFactor);
-        right.setRGB(255*redFactor, 0, 255*blueFactor/2);
+        left.setRGB(255*knobs_param.redFactor/2, 0, 255*knobs_param.blueFactor);
+        right.setRGB(255*knobs_param.redFactor, 0, 255*knobs_param.blueFactor/2);
         setRGB(left,right);
         return;
       }
@@ -252,29 +271,29 @@ static const byte PROGMEM _hidReportSDVX[] = {
 
       if (invert)
       {
-      redL = blueFactor*base.g + blueFactor*base.b + base.r;
-      greenL = blueFactor*base.r + blueFactor*base.b + base.g;
-      blueL = (1-blueFactor)*base.b;
+      redL = knobs_param.blueFactor*base.g + knobs_param.blueFactor*base.b + base.r;
+      greenL = knobs_param.blueFactor*base.r + knobs_param.blueFactor*base.b + base.g;
+      blueL = (1-knobs_param.blueFactor)*base.b;
       if (redL > 255) redL = 255;
       if (greenL > 255) greenL = 255;
       
-      redR = (1-redFactor)*base.r;
-      greenR = redFactor*base.r + redFactor*base.b + base.g;
+      redR = (1-knobs_param.redFactor)*base.r;
+      greenR = knobs_param.redFactor*base.r + knobs_param.redFactor*base.b + base.g;
       if (greenR > 255) greenR = 255;
-      blueR = base.b + redFactor*base.r + redFactor*base.g; 
+      blueR = base.b + knobs_param.redFactor*base.r + knobs_param.redFactor*base.g; 
       if (blueR > 255) blueR = 255;
       
       } else {
         
-      redL = (1-blueFactor)*base.r;
-      greenL = (1-blueFactor)*base.g;
-      blueL = blueFactor*base.r + blueFactor*base.g + base.b;
+      redL = (1-knobs_param.blueFactor)*base.r;
+      greenL = (1-knobs_param.blueFactor)*base.g;
+      blueL = knobs_param.blueFactor*base.r + knobs_param.blueFactor*base.g + base.b;
       if (blueL > 255) blueL = 255;
       
-      redR = base.r + redFactor*base.g + redFactor*base.b;
+      redR = base.r + knobs_param.redFactor*base.g + knobs_param.redFactor*base.b;
       if (redR > 255) redR = 255;
-      greenR = (1-redFactor)*base.g;
-      blueR = (1-redFactor)*base.b;
+      greenR = (1-knobs_param.redFactor)*base.g;
+      blueR = (1-knobs_param.redFactor)*base.b;
       }
       
       CRGB rgbL, rgbR;
@@ -315,84 +334,46 @@ static const byte PROGMEM _hidReportSDVX[] = {
           digitalWrite(LightPins[i],LOW);
       }
 
-      /* side leds */
-      if (true)
+      /* side leds */    
+      update_knobs_param();
+
+      uint8_t thisHue = beat8(50,255);
+        
+      if (knobs_param.brightness == 0)
       {
-        static uint16_t blue = 0;
-        static uint16_t red = 0;
-        static int8_t spinL = 0;
-        static int8_t spinR = 0;
-        
-        /* Update blue/red shift amount according to knob motion */
+        CRGB color;
+        color.setRGB(led_data[3],led_data[4],led_data[5]);
+        setRGB(color, color);
+      }
+      else
+      {
+        FastLED.setBrightness(knobs_param.brightness);
 
-        //left knob
-        if (spinEncL != 0){
-          if (blue<FADE_RATE)
-            blue++;
-        } else {
-          if (blue > 0)
-            blue--;
-        }
-
-        //right knob
-        if (spinEncR != 0){
-          if (red<FADE_RATE)
-            red++;
-          else red = FADE_RATE;
-        } else {
-          if (red > 0)
-            red--;
-        }
-
-        /* compute spinL/spinR (which are spinEncL/R but with a cooldown on the 0 */
-        if (spinEncL != 0)
-          spinL = spinEncL;
-        if (spinEncR != 0)
-          spinR = spinEncR;
-        if (red == 0)
-          spinR = 0;
-        if (blue == 0)
-          spinL = 0;
-                
-        /* blue/red factor is a [0;1] value representing the ratio of blue/red shift
-        (0 means no change with respect to base color, 1 means full blue/red instead */
-        float blueFactor = ((float)blue/(float)FADE_RATE);
-        float redFactor = ((float)red/(float)FADE_RATE);
-        float brightness = 255*(blueFactor > redFactor ? blueFactor:redFactor);
-        /* apply light */
-        uint8_t thisHue = beat8(50,255);                     // A simple rainbow march.
-        
-        if (brightness == 0)
+        if (knobs_param.blueFactor != 0)
         {
-          CRGB color;
-          color.setRGB(led_data[3],led_data[4],led_data[5]);
-          setRGB(color, color);
-        }
-        else
+          if (knobs_param.spinL) fill_rainbow(left_leds, SIDE_NUM_LEDS-1, knobs_param.spinL*thisHue, 15);
+          else fill_solid(left_leds, SIDE_NUM_LEDS, CRGB::Blue);
+        } 
+        else 
         {
-        FastLED.setBrightness(brightness);
-
-        if (blueFactor != 0){
-        if (spinL) fill_rainbow(left_leds, SIDE_NUM_LEDS-1, spinL*thisHue, 15);
-        else fill_solid(left_leds, SIDE_NUM_LEDS, CRGB::Blue);
-        } else {
           CRGB color;
           color.setRGB(led_data[3],led_data[4],led_data[5]);
           fill_solid(left_leds, SIDE_NUM_LEDS, color);
         }
-        if (redFactor != 0){
-        if (spinR) fill_rainbow(right_leds, SIDE_NUM_LEDS-1, spinR*thisHue, 15); 
-        else fill_solid(right_leds, SIDE_NUM_LEDS, CRGB::Red);
-        } else {
+        if (knobs_param.redFactor != 0)
+        {
+          if (knobs_param.spinR) fill_rainbow(right_leds, SIDE_NUM_LEDS-1, knobs_param.spinR*thisHue, 15); 
+          else fill_solid(right_leds, SIDE_NUM_LEDS, CRGB::Red);
+        } 
+        else 
+        {
           CRGB color;
           color.setRGB(led_data[3],led_data[4],led_data[5]);
           fill_solid(right_leds, SIDE_NUM_LEDS, color);
         }
-        }
-        FastLED.show();
-  
-        FastLED.setBrightness(0xFF);
       }
+      FastLED.show();
+      FastLED.setBrightness(0xFF);
     }
 
     static void fill_tc( struct CRGB * pFirstLEDL, struct CRGB * pFirstLEDR, bool hasBlue,
@@ -430,7 +411,8 @@ static const byte PROGMEM _hidReportSDVX[] = {
     void SDVXHID_::tcLeds(uint32_t buttonsState){
       uint32_t* bitfield = (uint32_t*)&(led_data[1]);
       uint32_t leds = (*bitfield|buttonsState);
-      
+
+      /* button leds */
       for(int i = 0; i < NUM_BUT_LEDS; i++) {
         if (leds>>i&1)
           digitalWrite(LightPins[i],HIGH);
@@ -439,67 +421,24 @@ static const byte PROGMEM _hidReportSDVX[] = {
       }
 
       /* side leds */
-      if (true)
+            
+      update_knobs_param();
+        
+      uint8_t thisHue = beat8(50,255);                    
+        
+      CRGB color;
+      color.setRGB(led_data[3],led_data[4],led_data[5]);
+      if (knobs_param.brightness == 0)
       {
-        static uint16_t blue = 0;
-        static uint16_t red = 0;
-        static int8_t spinL = 0;
-        static int8_t spinR = 0;
-        
-        /* Update blue/red shift amount according to knob motion */
-
-        //left knob
-        if (spinEncL != 0){
-          if (blue<FADE_RATE)
-            blue++;
-        } else {
-          if (blue > 0)
-            blue--;
-        }
-
-        //right knob
-        if (spinEncR != 0){
-          if (red<FADE_RATE)
-            red++;
-          else red = FADE_RATE;
-        } else {
-          if (red > 0)
-            red--;
-        }
-
-        /* compute spinL/spinR (which are spinEncL/R but with a cooldown on the 0 */
-        if (spinEncL != 0)
-          spinL = spinEncL;
-        if (spinEncR != 0)
-          spinR = spinEncR;
-        if (red == 0)
-          spinR = 0;
-        if (blue == 0)
-          spinL = 0;
-                
-        /* blue/red factor is a [0;1] value representing the ratio of blue/red shift
-        (0 means no change with respect to base color, 1 means full blue/red instead */
-        float blueFactor = ((float)blue/(float)FADE_RATE);
-        float redFactor = ((float)red/(float)FADE_RATE);
-        float brightness = 255*(blueFactor > redFactor ? blueFactor:redFactor);
-        /* apply light */
-        uint8_t thisHue = beat8(50,255);                    
-        
-        CRGB color;
-        color.setRGB(led_data[3],led_data[4],led_data[5]);
-        if (brightness == 0)
-        {
-          setRGB(color, color);
-        }
-        else
-        {
-        FastLED.setBrightness(brightness);
-        fill_tc(left_leds, right_leds, (blueFactor != 0), spinL*thisHue, (redFactor != 0), spinR*thisHue, color);     
-        }
-        FastLED.show();
-  
-        FastLED.setBrightness(0xFF);
+        setRGB(color, color);
       }
+      else
+      {
+        FastLED.setBrightness(knobs_param.brightness);
+        fill_tc(left_leds, right_leds, (knobs_param.blueFactor != 0), knobs_param.spinL*thisHue, (knobs_param.redFactor != 0), knobs_param.spinR*thisHue, color);     
+      }
+      FastLED.show();  
+      FastLED.setBrightness(0xFF);
     }
     
     int SDVXHID_::sendState(uint32_t buttonsState, int32_t enc1, int32_t enc2){
