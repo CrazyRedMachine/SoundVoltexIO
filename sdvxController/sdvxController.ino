@@ -3,14 +3,6 @@
 #include <EEPROM.h>
 #include "SDVXHID.h"
 
-#ifdef DEBUG
-  #define DEBUG_INIT() Serial.begin(115200)
-  #define DEBUG_VAR(x) Serial.print(#x " = "); Serial.println(x)
-#else
-  #define DEBUG_INIT() 
-  #define DEBUG_VAR(x) 
-#endif
-
 /* 1 frame (as declared in SDVXHID.cpp) on highspeed USB spec is 125µs */
 #define REPORT_DELAY 1000
 #define MILLIDEBOUNCE 5

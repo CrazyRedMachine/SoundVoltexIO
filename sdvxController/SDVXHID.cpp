@@ -377,36 +377,85 @@ void SDVXHID_::update_knobs_param(){
     }
 
     static void fill_tc( struct CRGB * pFirstLEDL, struct CRGB * pFirstLEDR, bool hasBlue,
-                  uint8_t initialhueB, bool hasRed,
-                  uint8_t initialhueR, CRGB hidcolor )
+                  int8_t spinL, bool hasRed,
+                  int8_t spinR, CRGB hidcolor )
     {
+      uint8_t thisHue = beat8(50,255); 
+      uint8_t initialhueB = spinL*thisHue;
+      uint8_t initialhueR = spinR*thisHue;
       int posB = (initialhueB* (2*SIDE_NUM_LEDS-4) / 255);
       int posR = (initialhueR* (2*SIDE_NUM_LEDS-4) / 255);
-
+      
       for( int i = 0; i < SIDE_NUM_LEDS; i++) {
         pFirstLEDL[i] = CRGB::Black;
         pFirstLEDR[i] = CRGB::Black;
       } 
       pFirstLEDL[0] = hidcolor;
       pFirstLEDR[0] = hidcolor;
-        
+
+      DEBUG_VAR(hasBlue);
+      DEBUG_VAR(hasRed);
+      
       if (hasBlue&&posB>0){
-      CRGB rgb;
-      rgb.b = initialhueB;
-      if (posB <= SIDE_NUM_LEDS-2)
-        pFirstLEDL[(SIDE_NUM_LEDS-1)-posB] += rgb;
-      else pFirstLEDR[posB-(SIDE_NUM_LEDS-2)] += rgb;
+        CRGB rgb;
+        rgb.b = 0xFF;
+        rgb.g = 0;
+        rgb.r = 0;
+        
+        if (posB <= SIDE_NUM_LEDS-2)
+        {
+          pFirstLEDL[(SIDE_NUM_LEDS-1)-posB] += rgb;
+          if (spinL == -1) {
+            CRGB fade;
+            fade.b = posB * 180/(2*SIDE_NUM_LEDS-4);
+            fade.r = 0;
+            fade.g = 0;
+            pFirstLEDR[1] += fade;
+          }
+        }
+        else 
+        {
+          pFirstLEDR[posB-(SIDE_NUM_LEDS-2)] += rgb;
+          if (spinL == 1) {
+            CRGB fade;
+            fade.r = 0;
+            fade.g = 0;
+            fade.b = ((2*SIDE_NUM_LEDS-4)-posB) * 180/(2*SIDE_NUM_LEDS-4);
+            pFirstLEDL[1] += fade;
+          }
+        }
       }
       
       if (hasRed&&posR>0){
-      CRGB rgb;
-      rgb.r = initialhueR;
-      if (posR <= SIDE_NUM_LEDS-2)
-        pFirstLEDL[(SIDE_NUM_LEDS-1)-posR] += rgb;
-      else pFirstLEDR[posR-(SIDE_NUM_LEDS-2)] += rgb;  
+        CRGB rgb;
+        rgb.r = 0xFF;
+        rgb.g = 0;
+        rgb.b = 0;
+        if (posR <= SIDE_NUM_LEDS-2)
+        {
+          pFirstLEDL[(SIDE_NUM_LEDS-1)-posR] += rgb;
+          if (spinR == -1) {
+            CRGB fader;
+            fader.g = 0;
+            fader.b = 0;
+            fader.r = (float)posR * 180./(2.*(float)(SIDE_NUM_LEDS-2));
+            pFirstLEDR[1] += fader;
+          }
+        }
+        else 
+        {
+          pFirstLEDR[posR-(SIDE_NUM_LEDS-2)] += rgb;
+          if (spinR == 1) {
+            CRGB fader;
+            fader.g = 0;
+            fader.b = 0;
+            fader.r = (float)((2*SIDE_NUM_LEDS-4)-posR) * 180./(2.*(float)(SIDE_NUM_LEDS-2));
+            pFirstLEDL[1] += fader;
+          }
+        }
       }
       
-      }
+    }
 
     void SDVXHID_::tcLeds(uint32_t buttonsState){
       uint32_t* bitfield = (uint32_t*)&(led_data[1]);
@@ -422,9 +471,7 @@ void SDVXHID_::update_knobs_param(){
 
       /* side leds */
             
-      update_knobs_param();
-        
-      uint8_t thisHue = beat8(50,255);                    
+      update_knobs_param();                 
         
       CRGB color;
       color.setRGB(led_data[3],led_data[4],led_data[5]);
@@ -435,7 +482,7 @@ void SDVXHID_::update_knobs_param(){
       else
       {
         FastLED.setBrightness(knobs_param.brightness);
-        fill_tc(left_leds, right_leds, (knobs_param.blueFactor != 0), knobs_param.spinL*thisHue, (knobs_param.redFactor != 0), knobs_param.spinR*thisHue, color);     
+        fill_tc(left_leds, right_leds, (knobs_param.blueFactor != 0), knobs_param.spinL, (knobs_param.redFactor != 0), knobs_param.spinR, color);     
       }
       FastLED.show();  
       FastLED.setBrightness(0xFF);

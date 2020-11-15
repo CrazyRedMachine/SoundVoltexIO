@@ -6,6 +6,16 @@
 #define NUM_LIGHT_MODES  7
 #define EPTYPE_DESCRIPTOR_SIZE    uint8_t
 
+//#define DEBUG
+
+#ifdef DEBUG
+  #define DEBUG_INIT() Serial.begin(115200)
+  #define DEBUG_VAR(x) Serial.print(#x " = "); Serial.println(x)
+#else
+  #define DEBUG_INIT() 
+  #define DEBUG_VAR(x) 
+#endif
+
 typedef struct knob_param_s {
   float blueFactor;
   float redFactor;
