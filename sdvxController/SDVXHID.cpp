@@ -373,7 +373,7 @@ static const byte PROGMEM _hidReportSDVX[] = {
         FastLED.setBrightness(brightness);
 
         if (blueFactor != 0){
-        if (spinL) fill_rainbow(left_leds, SIDE_NUM_LEDS-1, spinL*thisHue, 15); 
+        if (spinL) fill_rainbow(left_leds, SIDE_NUM_LEDS-1, spinL*thisHue, 15);
         else fill_solid(left_leds, SIDE_NUM_LEDS, CRGB::Blue);
         } else {
           CRGB color;
@@ -395,7 +395,38 @@ static const byte PROGMEM _hidReportSDVX[] = {
       }
     }
 
-    byte pos[] = {7,6,5,4,3,2,1,0,9,10,11,12,13,14,15,16};
+    static void fill_tc( struct CRGB * pFirstLEDL, struct CRGB * pFirstLEDR, bool hasBlue,
+                  uint8_t initialhueB, bool hasRed,
+                  uint8_t initialhueR, CRGB hidcolor )
+    {
+      int posB = (initialhueB* (2*SIDE_NUM_LEDS-4) / 255);
+      int posR = (initialhueR* (2*SIDE_NUM_LEDS-4) / 255);
+
+      for( int i = 0; i < SIDE_NUM_LEDS; i++) {
+        pFirstLEDL[i] = CRGB::Black;
+        pFirstLEDR[i] = CRGB::Black;
+      } 
+      pFirstLEDL[0] = hidcolor;
+      pFirstLEDR[0] = hidcolor;
+        
+      if (hasBlue&&posB>0){
+      CRGB rgb;
+      rgb.b = initialhueB;
+      if (posB <= SIDE_NUM_LEDS-2)
+        pFirstLEDL[(SIDE_NUM_LEDS-1)-posB] += rgb;
+      else pFirstLEDR[posB-(SIDE_NUM_LEDS-2)] += rgb;
+      }
+      
+      if (hasRed&&posR>0){
+      CRGB rgb;
+      rgb.r = initialhueR;
+      if (posR <= SIDE_NUM_LEDS-2)
+        pFirstLEDL[(SIDE_NUM_LEDS-1)-posR] += rgb;
+      else pFirstLEDR[posR-(SIDE_NUM_LEDS-2)] += rgb;  
+      }
+      
+      }
+
     void SDVXHID_::tcLeds(uint32_t buttonsState){
       uint32_t* bitfield = (uint32_t*)&(led_data[1]);
       uint32_t leds = (*bitfield|buttonsState);
@@ -408,8 +439,13 @@ static const byte PROGMEM _hidReportSDVX[] = {
       }
 
       /* side leds */
+      if (true)
+      {
         static uint16_t blue = 0;
         static uint16_t red = 0;
+        static int8_t spinL = 0;
+        static int8_t spinR = 0;
+        
         /* Update blue/red shift amount according to knob motion */
 
         //left knob
@@ -430,57 +466,40 @@ static const byte PROGMEM _hidReportSDVX[] = {
           if (red > 0)
             red--;
         }
-      
+
+        /* compute spinL/spinR (which are spinEncL/R but with a cooldown on the 0 */
+        if (spinEncL != 0)
+          spinL = spinEncL;
+        if (spinEncR != 0)
+          spinR = spinEncR;
+        if (red == 0)
+          spinR = 0;
+        if (blue == 0)
+          spinL = 0;
+                
         /* blue/red factor is a [0;1] value representing the ratio of blue/red shift
         (0 means no change with respect to base color, 1 means full blue/red instead */
         float blueFactor = ((float)blue/(float)FADE_RATE);
         float redFactor = ((float)red/(float)FADE_RATE);
         float brightness = 255*(blueFactor > redFactor ? blueFactor:redFactor);
         /* apply light */
-        FastLED.setBrightness(brightness);
-        static int bluepos = 0;
-        static int redpos = 15;
-        static int bluePosMod = 0;
-        static int redPosMod = 0;
-        static int prevSpinEncL = 0;
-        static int prevSpinEncR = 0;
-        if (spinEncL == prevSpinEncL){
-          bluePosMod++;
-          if (bluePosMod == 50){
-            bluePosMod = 0;
-            bluepos += spinEncL;
-            if (bluepos<0) bluepos = 0;
-            if (bluepos>15) bluepos = 15; 
-          }
-        } else bluePosMod--;
-        if (bluePosMod < 0) bluePosMod = 0;
-        if (spinEncR == prevSpinEncR){
-          redPosMod++;
-          if (redPosMod == 50){
-            redPosMod = 0;
-            redpos += spinEncR;
-            if (redpos<0) redpos = 0;
-            if (redpos>15) redpos = 15;
-          }
-        } else redPosMod--;
-        if (redPosMod < 0) redPosMod = 0;
+        uint8_t thisHue = beat8(50,255);                    
         
-        prevSpinEncR = spinEncR;
-        prevSpinEncL = spinEncL;
-        
-        fill_solid(left_leds, SIDE_NUM_LEDS, CRGB::Black);
-        fill_solid(right_leds, SIDE_NUM_LEDS, CRGB::Black);
-
-        if (spinEncL !=0){
-        if (pos[bluepos]>7) right_leds[pos[bluepos]-8] += CRGB::Blue;
-        else left_leds[pos[bluepos]] += CRGB::Blue;
+        CRGB color;
+        color.setRGB(led_data[3],led_data[4],led_data[5]);
+        if (brightness == 0)
+        {
+          setRGB(color, color);
         }
-        if (spinEncR != 0){
-        if (pos[redpos]>7) right_leds[pos[redpos]-8] += CRGB::Red;
-        else left_leds[pos[redpos]] += CRGB::Red;
-        } 
+        else
+        {
+        FastLED.setBrightness(brightness);
+        fill_tc(left_leds, right_leds, (blueFactor != 0), spinL*thisHue, (redFactor != 0), spinR*thisHue, color);     
+        }
         FastLED.show();
-      
+  
+        FastLED.setBrightness(0xFF);
+      }
     }
     
     int SDVXHID_::sendState(uint32_t buttonsState, int32_t enc1, int32_t enc2){
