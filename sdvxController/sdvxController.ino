@@ -7,7 +7,7 @@
 #define MILLIDEBOUNCE 5
 SDVXHID_ SDVXHID;
 
-#define REACTIVE_FALLBACK (millis()-SDVXHID.getLastHidUpdate()) <= 3000
+#define REACTIVE_FALLBACK ((millis()-SDVXHID.getLastHidUpdate()) > 3000)
 /* Buttons + Lights declarations */
 uint8_t LightPins[] = {7,10,11,12,13,8,9};
 //start a b c d fx-l fx-r service test
@@ -112,7 +112,7 @@ void loop() {
       break;
     /* Combined mode, received HID data and button state are combined */
     case 3:
-      SDVXHID.updateLeds(buttonsState & 0x1ff, false, true, REACTIVE_FALLBACK);
+      SDVXHID.updateLeds(buttonsState & 0x1ff, false, true, !REACTIVE_FALLBACK);
       break;
     /* Reactive Rainbow edition */
     case 5:

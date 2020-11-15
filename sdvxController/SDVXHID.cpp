@@ -197,10 +197,16 @@ static const byte PROGMEM _hidReportSDVX[] = {
     /**
      * update controller led with HID base request + a color shifted value depending on knobs activity
      */
-    void SDVXHID_::updateSideLeds(CRGB base, bool knobs, bool hid){
+    void SDVXHID_::updateSideLeds(CRGB base, bool invert, bool knobs, bool hid){
       static uint16_t blue = 0;
       static uint16_t red = 0;
 
+      if (invert)
+      {
+        base.r = 0xFF - base.r;
+        base.g = 0xFF - base.g;
+        base.b = 0xFF - base.b;
+      }
       if (!knobs)
       {
         setRGB(base,base);
@@ -232,7 +238,7 @@ static const byte PROGMEM _hidReportSDVX[] = {
       (0 means no change with respect to base color, 1 means full blue/red instead */
       float blueFactor = ((float)blue/(float)FADE_RATE);
       float redFactor = ((float)red/(float)FADE_RATE);
-      
+
       /* apply light */
       if (!hid){
         CRGB left,right;
@@ -243,7 +249,23 @@ static const byte PROGMEM _hidReportSDVX[] = {
       }
       /* HID color shift */
       float redL, greenL, blueL, redR, greenR, blueR;
+
+      if (invert)
+      {
+      redL = blueFactor*base.g + blueFactor*base.b + base.r;
+      greenL = blueFactor*base.r + blueFactor*base.b + base.g;
+      blueL = (1-blueFactor)*base.b;
+      if (redL > 255) redL = 255;
+      if (greenL > 255) greenL = 255;
       
+      redR = (1-redFactor)*base.r;
+      greenR = redFactor*base.r + redFactor*base.b + base.g;
+      if (greenR > 255) greenR = 255;
+      blueR = base.b + redFactor*base.r + redFactor*base.g; 
+      if (blueR > 255) blueR = 255;
+      
+      } else {
+        
       redL = (1-blueFactor)*base.r;
       greenL = (1-blueFactor)*base.g;
       blueL = blueFactor*base.r + blueFactor*base.g + base.b;
@@ -253,7 +275,8 @@ static const byte PROGMEM _hidReportSDVX[] = {
       if (redR > 255) redR = 255;
       greenR = (1-redFactor)*base.g;
       blueR = (1-redFactor)*base.b;
-
+      }
+      
       CRGB rgbL, rgbR;
       rgbL.setRGB(redL, greenL, blueL);
       rgbR.setRGB(redR, greenR, blueR);
@@ -276,12 +299,8 @@ static const byte PROGMEM _hidReportSDVX[] = {
       if (knobs || hid)
       {
         CRGB color;
-        if (invert) 
-          color.setRGB(0xFF-led_data[3],0xFF-led_data[4],0xFF-led_data[5]);
-        else
-          color.setRGB(led_data[3],led_data[4],led_data[5]);
-        
-        updateSideLeds(color,knobs,hid);
+        color.setRGB(led_data[3],led_data[4],led_data[5]);      
+        updateSideLeds(color,invert,knobs,hid);
       }
     }
 

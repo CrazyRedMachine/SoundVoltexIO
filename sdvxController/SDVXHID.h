@@ -18,7 +18,7 @@ class SDVXHID_ : public PluggableUSBModule {
 
     void tcLeds(uint32_t buttonsState, int32_t encL, int32_t encR);
     
-    void updateSideLeds(CRGB base, bool knobs, bool hid);
+    void updateSideLeds(CRGB base, bool invert, bool knobs, bool hid);
     /**
      * Updates the led status based on led_data (HID report received) and/or button states
      * param[in] buttonState bitfield with currently pressed buttons (used to force additional lights for mixed mode)
