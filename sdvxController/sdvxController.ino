@@ -3,25 +3,96 @@
 #include <EEPROM.h>
 #include "SDVXHID.h"
 
-/* 1 frame (as declared in SDVXHID.cpp) on highspeed USB spec is 125µs */
+/* use encoders rather than potentiometers */
+//#define USE_ENCODERS
+
+#ifdef USE_ENCODERS
+  #define ENCODER_PPR 400
+  #define ENCODER_SENSITIVITY 1023/ENCODER_PPR
+  #define ENC_L_A 0
+  #define ENC_L_B 1
+  #define ENC_L_B_ADDR 3
+  #define ENC_R_A 2
+  #define ENC_R_B 3
+  #define ENC_R_B_ADDR 0
+  #define ENCODER_PORT PIND
+/* 
+ * connect encoders
+ * VOL-L to pins 0 and 1
+ * VOL-R to pins 2 and 3
+ */
+ // Button pins
+#define START 4
+#define BT_A  5
+#define BT_B  6
+#define BT_C  7
+#define BT_D  8
+#define FX_L  9
+#define FX_R  10
+
+// LED pins
+#define LED_START A4
+#define LED_A     A3
+#define LED_B     A2
+#define LED_C     A1
+#define LED_D     A0
+#define LED_FXL   11
+#define LED_FXR   12
+// SET LED_STRIP PIN DIRECTLY IN SDVXHID.h
+
+#endif
+
+/* 1 frame (as declared in SDVXHID.cpp) on fullspeed USB spec is 1ms */
 #define REPORT_DELAY 1000
 #define MILLIDEBOUNCE 5
 SDVXHID_ SDVXHID;
 
 #define REACTIVE_FALLBACK ((millis()-SDVXHID.getLastHidUpdate()) > 3000)
+
+#ifdef USE_ENCODERS
+uint8_t LightPins[] = {LED_START,LED_A,LED_B,LED_C,LED_D,LED_FXL,LED_FXR};
+uint8_t ButtonPins[] = {START,BT_A,BT_B,BT_C,BT_D,FX_L,FX_R};
+#else
 /* Buttons + Lights declarations */
 uint8_t LightPins[] = {7,10,11,12,13,8,9};
 //start a b c d fx-l fx-r service test
 uint8_t ButtonPins[] = {0,3,4,5,6,1,2,A3,A2};
 uint8_t PotPins[] = {A5,A4};
-//uint8_t RGBPins[] = {A1,A0}; //must be changed directly inside SDVXHID.cpp in initRGB() method
-CRGB left_leds[SIDE_NUM_LEDS];
+const byte PotCount = sizeof(PotPins) / sizeof(PotPins[0]);
+#endif
+//uint8_t RGBPins[] = {LED_STRIP_PIN_L,LED_STRIP_PIN_R}; //must be changed in SDVXHID.h
+
+CRGB left_leds[LEFT_NUM_LEDS]; //will be twice as big as SIDE_NUM_LEDS for single strip variant
+#ifdef SINGLE_STRIP
+CRGB *right_leds = &(left_leds[SIDE_NUM_LEDS]);
+#else
 CRGB right_leds[SIDE_NUM_LEDS];
+#endif
 
 const byte ButtonCount = sizeof(ButtonPins) / sizeof(ButtonPins[0]);
 const byte LightCount = sizeof(LightPins) / sizeof(LightPins[0]);
-const byte PotCount = sizeof(PotPins) / sizeof(PotPins[0]);
 Bounce buttons[ButtonCount];
+
+#ifdef USE_ENCODERS
+int32_t g_raw_encL = 0;
+int32_t g_raw_encR = 0;
+
+void doEncL(){
+  if((ENCODER_PORT >> ENC_L_B_ADDR)&1){
+    g_raw_encL++;
+  } else {
+    g_raw_encL--;
+  }
+}
+
+void doEncR(){
+  if((ENCODER_PORT >> ENC_R_B_ADDR)&1){
+    g_raw_encR++;
+  } else {
+    g_raw_encR--;
+  }
+}
+#endif
 
 /* SETUP */
 void setup() {
@@ -36,10 +107,21 @@ void setup() {
   for (int i = 0; i < LightCount; i++) {
     pinMode(LightPins[i], OUTPUT);
   }
+
+  /**/
+  #ifdef USE_ENCODERS
+//setup interrupts
+  pinMode(ENC_L_A,INPUT_PULLUP);
+  pinMode(ENC_L_B,INPUT_PULLUP);
+  pinMode(ENC_R_A,INPUT_PULLUP);
+  pinMode(ENC_R_B,INPUT_PULLUP);
+  attachInterrupt(digitalPinToInterrupt(ENC_L_A), doEncL, RISING);
+  attachInterrupt(digitalPinToInterrupt(ENC_R_A), doEncR, RISING);
+  #endif
   
   uint8_t lightMode;
   EEPROM.get(0, lightMode);
-  if (lightMode < 0 || lightMode >= NUM_LIGHT_MODES)
+  if (lightMode >= NUM_LIGHT_MODES)
     lightMode = 2;
   SDVXHID.setLightMode(lightMode);
 
@@ -59,21 +141,38 @@ void setup() {
 
 /* LOOP */
 unsigned long lastReport = 0;
-int32_t encL = 0;
-int32_t encR = 0;
 
 bool modeChanged = false;
 void loop() {
   /* BUTTONS */
   uint32_t buttonsState = 0;
+  int32_t encL = 0;
+  int32_t encR = 0;
 
+#ifdef USE_ENCODERS
+// Limit the encoder from 0 to ENCODER_PPR
+    if (g_raw_encL >= ENCODER_PPR) {
+        g_raw_encL = 1;
+    } else if (g_raw_encL <= 0) {
+        g_raw_encL = ENCODER_PPR - 1;
+    }
+
+    if (g_raw_encR >= ENCODER_PPR) {
+        g_raw_encR = 1;
+    } else if (g_raw_encR <= 0) {
+        g_raw_encR = ENCODER_PPR - 1;
+    }
+    
+  encL = g_raw_encL * ENCODER_SENSITIVITY;
+  encR = g_raw_encR * ENCODER_SENSITIVITY;
+#else
   encL = analogRead(PotPins[0]);
   encR = analogRead(PotPins[1]);
-  
+#endif
+
   for (int i = 0; i < ButtonCount; i++) {
        buttons[i].update();
-       int value = buttons[i].read();   
-       int rawValue = digitalRead(ButtonPins[i]);   
+       int value = buttons[i].read();  
     if ( value == LOW ){
       buttonsState |= (uint32_t)1 << i;
     } else {
