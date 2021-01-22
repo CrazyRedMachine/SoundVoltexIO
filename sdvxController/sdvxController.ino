@@ -3,7 +3,28 @@
 #include <EEPROM.h>
 #include "SDVXHID.h"
 
-/* 1 frame (as declared in SDVXHID.cpp) on highspeed USB spec is 125µs */
+/* use encoders rather than potentiometers */
+#define USE_ENCODERS 1
+
+#ifdef USE_ENCODERS
+  #define ENCODER_PPR 600
+#define ENC_L_A 0
+#define ENC_L_B 1
+#define ENC_L_B_ADDR 3
+#define ENC_R_A 2
+#define ENC_R_B 3
+#define ENC_R_B_ADDR 0
+#define ENCODER_SENSITIVITY (double) 1.5625
+#define ENCODER_PORT PIND
+// encoder sensitivity = number of positions per rotation (400) / number of positions for HID report (256)/*
+/* 
+ * connect encoders
+ * VOL-L to pins 0 and 1
+ * VOL-R to pins 2 and 3
+ */
+#endif
+
+/* 1 frame (as declared in SDVXHID.cpp) on fullspeed USB spec is 1ms */
 #define REPORT_DELAY 1000
 #define MILLIDEBOUNCE 5
 SDVXHID_ SDVXHID;
@@ -23,6 +44,27 @@ const byte LightCount = sizeof(LightPins) / sizeof(LightPins[0]);
 const byte PotCount = sizeof(PotPins) / sizeof(PotPins[0]);
 Bounce buttons[ButtonCount];
 
+#ifdef USE_ENCODERS
+int32_t g_raw_encL = 0;
+int32_t g_raw_encR = 0;
+
+void doEncL(){
+  if((ENCODER_PORT >> ENC_L_B_ADDR)&1){
+    g_raw_encL++;
+  } else {
+    g_raw_encL--;
+  }
+}
+
+void doEncR(){
+  if((ENCODER_PORT >> ENC_R_B_ADDR)&1){
+    g_raw_encR++;
+  } else {
+    g_raw_encR--;
+  }
+}
+#endif
+
 /* SETUP */
 void setup() {
   DEBUG_INIT();
@@ -36,10 +78,21 @@ void setup() {
   for (int i = 0; i < LightCount; i++) {
     pinMode(LightPins[i], OUTPUT);
   }
+
+  /**/
+  #ifdef USE_ENCODERS
+//setup interrupts
+  pinMode(ENC_L_A,INPUT_PULLUP);
+  pinMode(ENC_L_B,INPUT_PULLUP);
+  pinMode(ENC_R_A,INPUT_PULLUP);
+  pinMode(ENC_R_B,INPUT_PULLUP);
+  attachInterrupt(digitalPinToInterrupt(ENC_L_A), doEncL, RISING);
+  attachInterrupt(digitalPinToInterrupt(ENC_R_A), doEncR, RISING);
+  #endif
   
   uint8_t lightMode;
   EEPROM.get(0, lightMode);
-  if (lightMode < 0 || lightMode >= NUM_LIGHT_MODES)
+  if (lightMode >= NUM_LIGHT_MODES)
     lightMode = 2;
   SDVXHID.setLightMode(lightMode);
 
@@ -59,21 +112,25 @@ void setup() {
 
 /* LOOP */
 unsigned long lastReport = 0;
-int32_t encL = 0;
-int32_t encR = 0;
 
 bool modeChanged = false;
 void loop() {
   /* BUTTONS */
   uint32_t buttonsState = 0;
+  int32_t encL = 0;
+  int32_t encR = 0;
 
+#ifdef USE_ENCODERS
+  encL = (uint8_t)((int32_t)(g_raw_encL / ENCODER_SENSITIVITY) % 256);
+  encR = (uint8_t)((int32_t)(g_raw_encR / ENCODER_SENSITIVITY) % 256);
+#else
   encL = analogRead(PotPins[0]);
   encR = analogRead(PotPins[1]);
-  
+#endif
+
   for (int i = 0; i < ButtonCount; i++) {
        buttons[i].update();
-       int value = buttons[i].read();   
-       int rawValue = digitalRead(ButtonPins[i]);   
+       int value = buttons[i].read();  
     if ( value == LOW ){
       buttonsState |= (uint32_t)1 << i;
     } else {
