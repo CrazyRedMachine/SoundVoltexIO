@@ -156,10 +156,10 @@ static const byte PROGMEM _hidReportSDVX[] = {
 
     void SDVXHID_::initRGB(){
       #ifdef SINGLE_STRIP
-      FastLED.addLeds<WS2812, 14, GRB>(left_leds, LEFT_NUM_LEDS);
+      FastLED.addLeds<WS2812, LED_STRIP_PIN_L, GRB>(left_leds, LEFT_NUM_LEDS);
       #else
-      FastLED.addLeds<WS2812, A1, GRB>(left_leds, SIDE_NUM_LEDS);
-      FastLED.addLeds<WS2812, A0, GRB>(right_leds, SIDE_NUM_LEDS);
+      FastLED.addLeds<WS2812, LED_STRIP_PIN_L, GRB>(left_leds, SIDE_NUM_LEDS);
+      FastLED.addLeds<WS2812, LED_STRIP_PIN_R, GRB>(right_leds, SIDE_NUM_LEDS);
       #endif
       FastLED.setBrightness( 0xFF );
       for (int i=0; i<SIDE_NUM_LEDS;i++){
@@ -226,11 +226,20 @@ void SDVXHID_::update_knobs_param(){
         red--;
     }
 
+    uint8_t lRev = 1;
+    uint8_t rRev = 1;
+    #ifdef L_STRIP_REVERSE
+      lRev = -1;
+    #endif
+    #ifdef R_STRIP_REVERSE
+      rRev = -1;
+    #endif
+    
     /* compute spinL/spinR (which are spinEncL/R but with a cooldown on the 0 so there's inertia in rainbow/tc */
     if (spinEncL != 0)
-      knobs_param.spinL = spinEncL;
+      knobs_param.spinL = lRev*spinEncL;
     if (spinEncR != 0)
-      knobs_param.spinR = spinEncR;
+      knobs_param.spinR = rRev*spinEncR;
     if (red == 0)
       knobs_param.spinR = 0;
     if (blue == 0)

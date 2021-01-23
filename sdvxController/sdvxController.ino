@@ -4,7 +4,7 @@
 #include "SDVXHID.h"
 
 /* use encoders rather than potentiometers */
-#define USE_ENCODERS 1
+//#define USE_ENCODERS
 
 #ifdef USE_ENCODERS
   #define ENCODER_PPR 400
@@ -21,6 +21,25 @@
  * VOL-L to pins 0 and 1
  * VOL-R to pins 2 and 3
  */
+ // Button pins
+#define START 4
+#define BT_A  5
+#define BT_B  6
+#define BT_C  7
+#define BT_D  8
+#define FX_L  9
+#define FX_R  10
+
+// LED pins
+#define LED_START A4
+#define LED_A     A3
+#define LED_B     A2
+#define LED_C     A1
+#define LED_D     A0
+#define LED_FXL   11
+#define LED_FXR   12
+// SET LED_STRIP PIN DIRECTLY IN SDVXHID.h
+
 #endif
 
 /* 1 frame (as declared in SDVXHID.cpp) on fullspeed USB spec is 1ms */
@@ -31,8 +50,8 @@ SDVXHID_ SDVXHID;
 #define REACTIVE_FALLBACK ((millis()-SDVXHID.getLastHidUpdate()) > 3000)
 
 #ifdef USE_ENCODERS
-uint8_t LightPins[] = {A4,A3,A2,A1,A0,11,12};
-uint8_t ButtonPins[] = {4,5,6,7,8,9,10};
+uint8_t LightPins[] = {LED_START,LED_A,LED_B,LED_C,LED_D,LED_FXL,LED_FXR};
+uint8_t ButtonPins[] = {START,BT_A,BT_B,BT_C,BT_D,FX_L,FX_R};
 #else
 /* Buttons + Lights declarations */
 uint8_t LightPins[] = {7,10,11,12,13,8,9};
@@ -41,7 +60,7 @@ uint8_t ButtonPins[] = {0,3,4,5,6,1,2,A3,A2};
 uint8_t PotPins[] = {A5,A4};
 const byte PotCount = sizeof(PotPins) / sizeof(PotPins[0]);
 #endif
-//uint8_t RGBPins[] = {A1,A0}; //must be changed directly inside SDVXHID.cpp in initRGB() method
+//uint8_t RGBPins[] = {LED_STRIP_PIN_L,LED_STRIP_PIN_R}; //must be changed in SDVXHID.h
 
 CRGB left_leds[LEFT_NUM_LEDS]; //will be twice as big as SIDE_NUM_LEDS for single strip variant
 #ifdef SINGLE_STRIP

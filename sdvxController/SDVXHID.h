@@ -1,10 +1,17 @@
 #include "HID.h"
 #include <FastLED.h>
 
-/* to use a single led strip (in this case update SIDE_NUM_LEDS so it's the number of leds for EACH side */
-#define SINGLE_STRIP 1
+/* PINOUT */
+//PIN_L is also the pin for single strip use
+#define LED_STRIP_PIN_L A1
+#define LED_STRIP_PIN_R A0
+#define SIDE_NUM_LEDS    9
+//#define L_STRIP_REVERSE //will reverse the direction of the left strip (for light march effects)
+//#define R_STRIP_REVERSE //will reverse the direction of the right strip (for light march effects)
 
-#define SIDE_NUM_LEDS    10
+/* to use a single led strip (in this case SIDE_NUM_LEDS is the number of leds for EACH side */
+//#define SINGLE_STRIP
+
 #ifdef SINGLE_STRIP
   #define LEFT_NUM_LEDS    SIDE_NUM_LEDS*2
 #else
