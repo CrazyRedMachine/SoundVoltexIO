@@ -1,8 +1,12 @@
 #include "SDVXHID.h"
 
 byte extern LightPins[];
-CRGB extern left_leds[SIDE_NUM_LEDS];
+CRGB extern left_leds[LEFT_NUM_LEDS];
+#ifdef SINGLE_STRIP
+CRGB extern *right_leds;
+#else
 CRGB extern right_leds[SIDE_NUM_LEDS];
+#endif
 
 /* HID DESCRIPTOR */
 static const byte PROGMEM _hidReportSDVX[] = {
@@ -151,8 +155,12 @@ static const byte PROGMEM _hidReportSDVX[] = {
 /* CUSTOM SDVX FUNCTIONS */
 
     void SDVXHID_::initRGB(){
+      #ifdef SINGLE_STRIP
+      FastLED.addLeds<WS2812, 14, GRB>(left_leds, LEFT_NUM_LEDS);
+      #else
       FastLED.addLeds<WS2812, A1, GRB>(left_leds, SIDE_NUM_LEDS);
       FastLED.addLeds<WS2812, A0, GRB>(right_leds, SIDE_NUM_LEDS);
+      #endif
       FastLED.setBrightness( 0xFF );
       for (int i=0; i<SIDE_NUM_LEDS;i++){
         left_leds[i] = CRGB::Black;
@@ -178,7 +186,7 @@ static const byte PROGMEM _hidReportSDVX[] = {
     }
     
     void SDVXHID_::setLightMode(uint8_t mode){
-      if ((mode >= NUM_LIGHT_MODES) || (mode < 0)) {
+      if ((mode >= NUM_LIGHT_MODES)) {
         lightMode = 2;
         return;
       }
@@ -240,9 +248,6 @@ void SDVXHID_::update_knobs_param(){
      * update controller led with HID base request + a color shifted value depending on knobs activity
      */
     void SDVXHID_::updateSideLeds(CRGB base, bool invert, bool knobs, bool hid){
-      static uint16_t blue = 0;
-      static uint16_t red = 0;
-
       if (invert)
       {
         base.r = 0xFF - base.r;
@@ -375,7 +380,6 @@ void SDVXHID_::update_knobs_param(){
       FastLED.show();
       FastLED.setBrightness(0xFF);
     }
-
     static void fill_tc( struct CRGB * pFirstLEDL, struct CRGB * pFirstLEDR, bool hasBlue,
                   int8_t spinL, bool hasRed,
                   int8_t spinR, CRGB hidcolor )

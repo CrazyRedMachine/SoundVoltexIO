@@ -1,7 +1,15 @@
 #include "HID.h"
 #include <FastLED.h>
 
-#define SIDE_NUM_LEDS    9
+/* to use a single led strip (in this case update SIDE_NUM_LEDS so it's the number of leds for EACH side */
+#define SINGLE_STRIP 1
+
+#define SIDE_NUM_LEDS    10
+#ifdef SINGLE_STRIP
+  #define LEFT_NUM_LEDS    SIDE_NUM_LEDS*2
+#else
+  #define LEFT_NUM_LEDS    SIDE_NUM_LEDS
+#endif
 #define NUM_BUT_LEDS     7  
 #define NUM_LIGHT_MODES  7
 #define EPTYPE_DESCRIPTOR_SIZE    uint8_t

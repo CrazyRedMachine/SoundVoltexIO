@@ -7,16 +7,15 @@
 #define USE_ENCODERS 1
 
 #ifdef USE_ENCODERS
-  #define ENCODER_PPR 600
-#define ENC_L_A 0
-#define ENC_L_B 1
-#define ENC_L_B_ADDR 3
-#define ENC_R_A 2
-#define ENC_R_B 3
-#define ENC_R_B_ADDR 0
-#define ENCODER_SENSITIVITY (double) 1.5625
-#define ENCODER_PORT PIND
-// encoder sensitivity = number of positions per rotation (400) / number of positions for HID report (256)/*
+  #define ENCODER_PPR 400
+  #define ENCODER_SENSITIVITY 1023/ENCODER_PPR
+  #define ENC_L_A 0
+  #define ENC_L_B 1
+  #define ENC_L_B_ADDR 3
+  #define ENC_R_A 2
+  #define ENC_R_B 3
+  #define ENC_R_B_ADDR 0
+  #define ENCODER_PORT PIND
 /* 
  * connect encoders
  * VOL-L to pins 0 and 1
@@ -30,18 +29,29 @@
 SDVXHID_ SDVXHID;
 
 #define REACTIVE_FALLBACK ((millis()-SDVXHID.getLastHidUpdate()) > 3000)
+
+#ifdef USE_ENCODERS
+uint8_t LightPins[] = {A4,A3,A2,A1,A0,11,12};
+uint8_t ButtonPins[] = {4,5,6,7,8,9,10};
+#else
 /* Buttons + Lights declarations */
 uint8_t LightPins[] = {7,10,11,12,13,8,9};
 //start a b c d fx-l fx-r service test
 uint8_t ButtonPins[] = {0,3,4,5,6,1,2,A3,A2};
 uint8_t PotPins[] = {A5,A4};
+const byte PotCount = sizeof(PotPins) / sizeof(PotPins[0]);
+#endif
 //uint8_t RGBPins[] = {A1,A0}; //must be changed directly inside SDVXHID.cpp in initRGB() method
-CRGB left_leds[SIDE_NUM_LEDS];
+
+CRGB left_leds[LEFT_NUM_LEDS]; //will be twice as big as SIDE_NUM_LEDS for single strip variant
+#ifdef SINGLE_STRIP
+CRGB *right_leds = &(left_leds[SIDE_NUM_LEDS]);
+#else
 CRGB right_leds[SIDE_NUM_LEDS];
+#endif
 
 const byte ButtonCount = sizeof(ButtonPins) / sizeof(ButtonPins[0]);
 const byte LightCount = sizeof(LightPins) / sizeof(LightPins[0]);
-const byte PotCount = sizeof(PotPins) / sizeof(PotPins[0]);
 Bounce buttons[ButtonCount];
 
 #ifdef USE_ENCODERS
@@ -121,8 +131,21 @@ void loop() {
   int32_t encR = 0;
 
 #ifdef USE_ENCODERS
-  encL = (uint8_t)((int32_t)(g_raw_encL / ENCODER_SENSITIVITY) % 256);
-  encR = (uint8_t)((int32_t)(g_raw_encR / ENCODER_SENSITIVITY) % 256);
+// Limit the encoder from 0 to ENCODER_PPR
+    if (g_raw_encL >= ENCODER_PPR) {
+        g_raw_encL = 1;
+    } else if (g_raw_encL <= 0) {
+        g_raw_encL = ENCODER_PPR - 1;
+    }
+
+    if (g_raw_encR >= ENCODER_PPR) {
+        g_raw_encR = 1;
+    } else if (g_raw_encR <= 0) {
+        g_raw_encR = ENCODER_PPR - 1;
+    }
+    
+  encL = g_raw_encL * ENCODER_SENSITIVITY;
+  encR = g_raw_encR * ENCODER_SENSITIVITY;
 #else
   encL = analogRead(PotPins[0]);
   encR = analogRead(PotPins[1]);
