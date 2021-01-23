@@ -4,23 +4,11 @@
 #include "SDVXHID.h"
 
 /* use encoders rather than potentiometers */
-//#define USE_ENCODERS
+#define USE_ENCODERS
 
 #ifdef USE_ENCODERS
-  #define ENCODER_PPR 400
-  #define ENCODER_SENSITIVITY 1023/ENCODER_PPR
-  #define ENC_L_A 0
-  #define ENC_L_B 1
-  #define ENC_L_B_ADDR 3
-  #define ENC_R_A 2
-  #define ENC_R_B 3
-  #define ENC_R_B_ADDR 0
-  #define ENCODER_PORT PIND
-/* 
- * connect encoders
- * VOL-L to pins 0 and 1
- * VOL-R to pins 2 and 3
- */
+  #define ENCODER_PPR 360
+  #define ENCODER_SENSITIVITY (float) (1023/(float)ENCODER_PPR)
  // Button pins
 #define START 4
 #define BT_A  5
@@ -52,6 +40,8 @@ SDVXHID_ SDVXHID;
 #ifdef USE_ENCODERS
 uint8_t LightPins[] = {LED_START,LED_A,LED_B,LED_C,LED_D,LED_FXL,LED_FXR};
 uint8_t ButtonPins[] = {START,BT_A,BT_B,BT_C,BT_D,FX_L,FX_R};
+byte EncPins[]    = {0, 1, 2, 3};
+byte EncPinCount = sizeof(EncPins) / sizeof(EncPins[0]);
 #else
 /* Buttons + Lights declarations */
 uint8_t LightPins[] = {7,10,11,12,13,8,9};
@@ -76,20 +66,39 @@ Bounce buttons[ButtonCount];
 #ifdef USE_ENCODERS
 int32_t g_raw_encL = 0;
 int32_t g_raw_encR = 0;
+bool state[2]={false}, set[4]={false};
 
 void doEncL(){
-  if((ENCODER_PORT >> ENC_L_B_ADDR)&1){
-    g_raw_encL++;
-  } else {
-    g_raw_encL--;
+  if(state[0] == false && digitalRead(EncPins[0]) == LOW) {
+    set[0] = digitalRead(EncPins[1]);
+    state[0] = true;
+  }
+  if(state[0] == true && digitalRead(EncPins[0]) == HIGH) {
+    set[1] = !digitalRead(EncPins[1]);
+    if(set[0] == true && set[1] == true) {
+      g_raw_encL++;
+    }
+    if(set[0] == false && set[1] == false) {
+      g_raw_encL--;
+    }
+    state[0] = false;
   }
 }
 
 void doEncR(){
-  if((ENCODER_PORT >> ENC_R_B_ADDR)&1){
-    g_raw_encR++;
-  } else {
-    g_raw_encR--;
+  if(state[1] == false && digitalRead(EncPins[2]) == LOW) {
+    set[2] = digitalRead(EncPins[3]);
+    state[1] = true;
+  }
+  if(state[1] == true && digitalRead(EncPins[2]) == HIGH) {
+    set[3] = !digitalRead(EncPins[3]);
+    if(set[2] == true && set[3] == true) {
+      g_raw_encR++;
+    }
+    if(set[2] == false && set[3] == false) {
+      g_raw_encR--;
+    }
+    state[1] = false;
   }
 }
 #endif
@@ -111,12 +120,11 @@ void setup() {
   /**/
   #ifdef USE_ENCODERS
 //setup interrupts
-  pinMode(ENC_L_A,INPUT_PULLUP);
-  pinMode(ENC_L_B,INPUT_PULLUP);
-  pinMode(ENC_R_A,INPUT_PULLUP);
-  pinMode(ENC_R_B,INPUT_PULLUP);
-  attachInterrupt(digitalPinToInterrupt(ENC_L_A), doEncL, RISING);
-  attachInterrupt(digitalPinToInterrupt(ENC_R_A), doEncR, RISING);
+for(int i=0;i<EncPinCount;i++) {
+    pinMode(EncPins[i],INPUT_PULLUP);
+  }
+  attachInterrupt(digitalPinToInterrupt(EncPins[0]), doEncL, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(EncPins[2]), doEncR, CHANGE);
   #endif
   
   uint8_t lightMode;
@@ -151,20 +159,21 @@ void loop() {
 
 #ifdef USE_ENCODERS
 // Limit the encoder from 0 to ENCODER_PPR
-    if (g_raw_encL >= ENCODER_PPR) {
-        g_raw_encL = 1;
-    } else if (g_raw_encL <= 0) {
+      if (g_raw_encL >= ENCODER_PPR) {
+        g_raw_encL = 0;
+    } else if (g_raw_encL < 0) {
         g_raw_encL = ENCODER_PPR - 1;
     }
 
     if (g_raw_encR >= ENCODER_PPR) {
-        g_raw_encR = 1;
-    } else if (g_raw_encR <= 0) {
+        g_raw_encR = 0;
+    } else if (g_raw_encR < 0) {
         g_raw_encR = ENCODER_PPR - 1;
     }
-    
+  
   encL = g_raw_encL * ENCODER_SENSITIVITY;
   encR = g_raw_encR * ENCODER_SENSITIVITY;
+
 #else
   encL = analogRead(PotPins[0]);
   encR = analogRead(PotPins[1]);
