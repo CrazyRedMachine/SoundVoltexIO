@@ -1,3 +1,9 @@
+# THIS IS WIP CODE, UNLIKE THE POTENTIOMETER VERSION, THIS ONE WON'T WORK PROPERLY WITH WS2812B STRIPS
+
+Unfortunately ws2812b protocol is bitbanged by FastLED, which requires to disable interrupts momentarily. This causes missed inputs from the encoders.
+
+There is currently no solution to this problem. Please switch to APA102 rgb strips or to potentiometers.
+
 # SoundVoltexIO
 
 Arduino Leonardo firmware for Sound Voltex arcade panel
