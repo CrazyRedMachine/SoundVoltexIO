@@ -7,11 +7,11 @@ CRGB extern right_leds[SIDE_NUM_LEDS];
 /* HID DESCRIPTOR */
 static const byte PROGMEM _hidReportSDVX[] = {
 0x05, 0x01,        // Usage Page (Generic Desktop Ctrls)
-0x09, 0x05,        // Usage (Game Pad)
+0x09, 0x04,        // Usage (Joystick)
 
 0xA1, 0x01,        // Collection (Application)
   0x85, 0x04,        //   Report ID (4)
-    /* 9 buttons (start, a b c d, fx l, fx r, service, test */
+    /* 9 buttons (a b c d, fx l, fx r, service, test, start */
   0x05, 0x09,        //   Usage Page (Button)
   0x19, 0x01,        //   Usage Minimum (0x01)
   0x29, 0x09,        //   Usage Maximum (0x09)
@@ -38,47 +38,198 @@ static const byte PROGMEM _hidReportSDVX[] = {
     0x81, 0x02,        //     Input (Data,Var,Abs,No Wrap,Linear,Preferred State,No Null Position)
   0xC0,              //   End Collection (analog axis)
 
-  0x85, 0x05,        //   Report ID (5)
-      /* up to 9 button leds (will require soldering additional headers on leonardo) */
-    0x05, 0x09,        //     Usage Page (Buttons)
-    0x19, 0x01,        //     Usage Minimum (0x01)
-    0x29, 0x09,        //     Usage Maximum (0x07)
-    0x15, 0x00,        //     Logical Minimum (0)
-    0x25, 0x01,        //     Logical Maximum (1)
-    0x95, 0x09,        //     Report Count (7)
-    0x75, 0x01,        //     Report Size (1)
-    0x91, 0x02,        //     Output (Data,Var,Abs,No Wrap,Linear,Preferred State,No Null Position,Non-volatile)
-      /* 7 bits padding */
-    0x95, 0x01,        //     Report Count (1)
-    0x75, 0x07,        //     Report Size (9)
-    0x91, 0x03,        //     Input (Const,Var,Abs,No Wrap,Linear,Preferred State,No Null Position)
-    
-      /* 1 rgb controller led (with 0-255 values for red green and blue) */
-    0x05, 0x08,        //     Usage Page (LEDs)
-    0x19, 0x48,        //     Usage Minimum (Indicator Red)
-    0x29, 0x4B,        //     Usage Maximum (Generic Indicator)
-    0x15, 0x00,        //     Logical Minimum (0)
-    0x26, 0xFF, 0x00,  //     Logical Maximum (255)
-    0x95, 0x03,        //     Report Count (3)
-    0x75, 0x08,        //     Report Size (8)
-    0xA1, 0x02,        //   Collection (Logical)
-      0x09, 0x48,        //       Usage (Indicator Red)
-      0x09, 0x49,        //       Usage (Indicator Green)
-      0x09, 0x4B,        //       Usage (Generic Indicator)
-      0x91, 0x02,        //     Input (Data,Var,Abs,No Wrap,Linear,Preferred State,No Null Position)
-    0xC0,              //   End Collection (RGB led)
+   /*Lights */
+    0x85, 0x05,                    /*   REPORT_ID 5*/ 
+    0x15, 0x00,                    /*     LOGICAL_MINIMUM (0) */ 
+    0x25, 0x01,                    /*     LOGICAL_MAXIMUM (1) */ 
+    /*Led A */ 
+    0x05, 0x0a,                    /*     USAGE_PAGE (Ordinals) */ 
+    0x09, 0x01,                    /*     USAGE (Instance 1) */ 
+    0xa1, 0x02,                    /*     COLLECTION (Logical) */ 
+    0x05, 0x08,                    /*       USAGE_PAGE (LEDs) */ 
+    0x09, 0x4b,                    /*       USAGE (Generic Indicator 1) */ 
+    0x79, 0x04,                    /*       STRING INDEX (4) */
+    0x75, 0x01,                    /*       REPORT_SIZE (1) */ 
+    0x95, 0x01,                    /*       REPORT_COUNT (1) */ 
+    0x91, 0x02,                    /*       OUTPUT (Data,Var,Abs) */ 
+    0xc0,                          /*     END_COLLECTION */ 
+    /*Led B */ 
+    0x05, 0x0a,                    /*     USAGE_PAGE (Ordinals) */ 
+    0x09, 0x02,                    /*     USAGE (Instance 2) */ 
+    0xa1, 0x02,                    /*     COLLECTION (Logical) */ 
+    0x05, 0x08,                    /*       USAGE_PAGE (LEDs) */ 
+    0x09, 0x4b,                    /*       USAGE (Generic Indicator 1) */ 
+    0x79, 0x05,
+    0x75, 0x01,                    /*       REPORT_SIZE (1) */ 
+    0x95, 0x01,                    /*       REPORT_COUNT (1) */ 
+    0x91, 0x02,                    /*       OUTPUT (Data,Var,Abs) */ 
+    0xc0,                          /*     END_COLLECTION */ 
+    /*Led C */ 
+    0x05, 0x0a,                    /*     USAGE_PAGE (Ordinals) */ 
+    0x09, 0x03,                    /*     USAGE (Instance 3) */ 
+    0xa1, 0x02,                    /*     COLLECTION (Logical) */ 
+    0x05, 0x08,                    /*       USAGE_PAGE (LEDs) */ 
+    0x09, 0x4b,                    /*       USAGE (Generic Indicator 1) */ 
+    0x79, 0x06,
+    0x75, 0x01,                    /*       REPORT_SIZE (1) */ 
+    0x95, 0x01,                    /*       REPORT_COUNT (1) */ 
+    0x91, 0x02,                    /*       OUTPUT (Data,Var,Abs) */ 
+    0xc0,                          /*     END_COLLECTION */ 
+    /*Led D */ 
+    0x05, 0x0a,                    /*     USAGE_PAGE (Ordinals) */ 
+    0x09, 0x04,                    /*     USAGE (Instance 4) */ 
+    0xa1, 0x02,                    /*     COLLECTION (Logical) */ 
+    0x05, 0x08,                    /*       USAGE_PAGE (LEDs) */ 
+    0x09, 0x4b,                    /*       USAGE (Generic Indicator 1) */ 
+    0x79, 0x07,
+    0x75, 0x01,                    /*       REPORT_SIZE (1) */ 
+    0x95, 0x01,                    /*       REPORT_COUNT (1) */ 
+    0x91, 0x02,                    /*       OUTPUT (Data,Var,Abs) */ 
+    0xc0,                          /*     END_COLLECTION */ 
+    /*Led FX-L */ 
+    0x05, 0x0a,                    /*     USAGE_PAGE (Ordinals) */ 
+    0x09, 0x05,                    /*     USAGE (Instance 5) */ 
+    0xa1, 0x02,                    /*     COLLECTION (Logical) */ 
+    0x05, 0x08,                    /*       USAGE_PAGE (LEDs) */ 
+    0x09, 0x4b,                    /*       USAGE (Generic Indicator 1) */ 
+    0x79, 0x08,
+    0x75, 0x01,                    /*       REPORT_SIZE (1) */ 
+    0x95, 0x01,                    /*       REPORT_COUNT (1) */ 
+    0x91, 0x02,                    /*       OUTPUT (Data,Var,Abs) */ 
+    0xc0,                          /*     END_COLLECTION */ 
+    /*Led FX-R */ 
+    0x05, 0x0a,                    /*     USAGE_PAGE (Ordinals) */ 
+    0x09, 0x06,                    /*     USAGE (Instance 6) */ 
+    0xa1, 0x02,                    /*     COLLECTION (Logical) */ 
+    0x05, 0x08,                    /*       USAGE_PAGE (LEDs) */ 
+    0x09, 0x4b,                    /*       USAGE (Generic Indicator 1) */ 
+    0x79, 0x09,
+    0x75, 0x01,                    /*       REPORT_SIZE (1) */ 
+    0x95, 0x01,                    /*       REPORT_COUNT (1) */ 
+    0x91, 0x02,                    /*       OUTPUT (Data,Var,Abs) */ 
+    0xc0,                          /*     END_COLLECTION */ 
+    /*Led Start */ 
+    0x05, 0x0a,                    /*     USAGE_PAGE (Ordinals) */ 
+    0x09, 0x07,                    /*     USAGE (Instance 7) */ 
+    0xa1, 0x02,                    /*     COLLECTION (Logical) */ 
+    0x05, 0x08,                    /*       USAGE_PAGE (LEDs) */ 
+    0x09, 0x4b,                    /*       USAGE (Generic Indicator 1) */ 
+    0x79, 0x0a,
+    0x75, 0x01,                    /*       REPORT_SIZE (1) */ 
+    0x95, 0x01,                    /*       REPORT_COUNT (1) */ 
+    0x91, 0x02,                    /*       OUTPUT (Data,Var,Abs) */ 
+    0xc0,                          /*     END_COLLECTION */ 
+    /*  Reserved 1 bits */ 
+    0x95, 0x01,            /*   REPORT_COUNT (1) */ 
+    0x75, 0x01,            /*   REPORT_SIZE (7) */ 
+    0x91, 0x03,            /*   OUTPUT (Cnst,Var,Abs) */ 
 
-    /* HID modeswitch request (no usage page etc so it's not picked up by the tools) */
-  0x85, 0x06,        //   Report ID (6)
-    0x95, 0x01,        //     Report Count (1)
-    0x75, 0x08,        //     Report Size (9)
-    0x91, 0x03,        //     Input (Const,Var,Abs,No Wrap,Linear,Preferred State,No Null Position)
+    /* 1 rgb controller led (with 0-255 values for red green and blue) */
+    /* Red */ 
+    0x05, 0x0a,                    /*     USAGE_PAGE (Ordinals) */ 
+    0x09, 0x08,                    /*     USAGE (Instance 7) */ 
+    0x15, 0x00,                    /*     LOGICAL_MINIMUM (0) */ 
+    0x26, 0xFF, 0x00,              /*     LOGICAL_MAXIMUM (1) */ 
+    0xa1, 0x02,                    /*     COLLECTION (Logical) */ 
+    0x05, 0x08,                    /*       USAGE_PAGE (LEDs) */ 
+    0x09, 0x4b,                    /*       USAGE (Generic Indicator 1) */ 
+    0x79, 0x0b,
+    0x75, 0x08,                    /*       REPORT_SIZE (8) */ 
+    0x95, 0x01,                    /*       REPORT_COUNT (1) */ 
+    0x91, 0x02,                    /*       OUTPUT (Data,Var,Abs) */ 
+    0xc0,                          /*     END_COLLECTION */ 
+    /* Green */ 
+    0x05, 0x0a,                    /*     USAGE_PAGE (Ordinals) */ 
+    0x09, 0x09,                    /*     USAGE (Instance 7) */ 
+    0x15, 0x00,                    /*     LOGICAL_MINIMUM (0) */ 
+    0x26, 0xFF, 0x00,              /*     LOGICAL_MAXIMUM (1) */ 
+    0xa1, 0x02,                    /*     COLLECTION (Logical) */ 
+    0x05, 0x08,                    /*       USAGE_PAGE (LEDs) */ 
+    0x09, 0x4b,                    /*       USAGE (Generic Indicator 1) */ 
+    0x79, 0x0c,
+    0x75, 0x08,                    /*       REPORT_SIZE (8) */ 
+    0x95, 0x01,                    /*       REPORT_COUNT (1) */ 
+    0x91, 0x02,                    /*       OUTPUT (Data,Var,Abs) */ 
+    0xc0,                          /*     END_COLLECTION */ 
+    /* Blue */ 
+    0x05, 0x0a,                    /*     USAGE_PAGE (Ordinals) */ 
+    0x09, 0x0a,                    /*     USAGE (Instance 7) */ 
+    0x15, 0x00,                    /*     LOGICAL_MINIMUM (0) */ 
+    0x26, 0xFF, 0x00,              /*     LOGICAL_MAXIMUM (1) */ 
+    0xa1, 0x02,                    /*     COLLECTION (Logical) */ 
+    0x05, 0x08,                    /*       USAGE_PAGE (LEDs) */ 
+    0x09, 0x4b,                    /*       USAGE (Generic Indicator 1) */ 
+    0x79, 0x0d,
+    0x75, 0x08,                    /*       REPORT_SIZE (8) */ 
+    0x95, 0x01,                    /*       REPORT_COUNT (1) */ 
+    0x91, 0x02,                    /*       OUTPUT (Data,Var,Abs) */ 
+    0xc0,                          /*     END_COLLECTION */ 
+   
+    /* HID modeswitch request */
+    0x85, 0x07,                    /*   REPORT_ID 7 */
+    0x05, 0x0a,                    /*     USAGE_PAGE (Ordinals) */ 
+    0x19, 0x00,                    /*     USAGE_MINIMUM (Button 1) */ 
+    0x29, 0x04,                    /*     USAGE_MAXIMUM (Button 4)*/ 
+    0x15, 0x00,                    /*     LOGICAL_MINIMUM (0) */ 
+    0x25, 0x04,                    /*     LOGICAL_MAXIMUM (4) */
+    0x95, 0x01,                    /*     REPORT_COUNT (1) */ 
+    0x75, 0x04,                    /*     REPORT_SIZE (4) */ 
+    0xb1, 0x02,                     /*    FEATURE (Data,Var,Abs) */ 
+    /* Reserved bits */ 
+    0x95, 0x01,                      /*   REPORT_COUNT (1) */ 
+    0x75, 0x04,                      /*   REPORT_SIZE (4) */ 
+    0xb1, 0x03,                      /*   FEATURE (Cnst,Var,Abs) */
     
-0xC0  // End Collection (Gamepad)
+0xC0  // End Collection (Joystick)
 
 };
 
 /* PluggableUSBModule IMPLEMENTATION */
+
+#if KONAMI_SPOOF == 1
+const DeviceDescriptor PROGMEM USB_DeviceDescriptorIAD =
+  D_DEVICE(0xEF,0x02,0x01,64,0x1ccf,0x101c,0x100,IMANUFACTURER,IPRODUCT,ISERIAL,1);
+const char* const PROGMEM String_Manufacturer = "Konami Amusement";
+const char* const PROGMEM String_Product = "SOUND VOLTEX controller";
+#else
+/* HID descriptor strings */
+const char* const PROGMEM String_Manufacturer = "CrazyRedMachine";
+const char* const PROGMEM String_Product = "SDVX Controller";
+#endif
+const char* const PROGMEM String_Serial = "SDVX";
+
+const char* const PROGMEM LEDString_00 = "BT-A";
+const char* const PROGMEM LEDString_01 = "BT-B";
+const char* const PROGMEM LEDString_02 = "BT-C";
+const char* const PROGMEM LEDString_03 = "BT-D";
+const char* const PROGMEM LEDString_04 = "FX-L";
+const char* const PROGMEM LEDString_05 = "FX-R";
+const char* const PROGMEM LEDString_06 = "Start";
+const char* const PROGMEM LEDString_07 = "Controller R";
+const char* const PROGMEM LEDString_08 = "Controller G";
+const char* const PROGMEM LEDString_09 = "Controller B";
+
+const char* String_indiv[] = {LEDString_00,LEDString_01,LEDString_02,LEDString_03,LEDString_04,LEDString_05,LEDString_06,LEDString_07,LEDString_08,LEDString_09};
+uint8_t STRING_ID_Count = 10;
+
+static bool SendControl(uint8_t d)
+{
+  return USB_SendControl(0, &d, 1) == 1;
+}
+
+static bool USB_SendStringDescriptor(const char *string_P, uint8_t string_len, uint8_t flags) {
+        SendControl(2 + string_len * 2);
+        SendControl(3);
+        bool pgm = flags & TRANSFER_PGM;
+        for(uint8_t i = 0; i < string_len; i++) {
+                bool r = SendControl(pgm ? pgm_read_byte(&string_P[i]) : string_P[i]);
+                r &= SendControl(0); // high byte
+                if(!r) {
+                        return false;
+                }
+        }
+        return true;
+}
 
     SDVXHID_::SDVXHID_(void) : PluggableUSBModule(1, 1, epType) {
       epType[0] = EP_TYPE_INTERRUPT_IN;
@@ -97,6 +248,25 @@ static const byte PROGMEM _hidReportSDVX[] = {
     
     int SDVXHID_::getDescriptor(USBSetup& setup)
     {
+      #if KONAMI_SPOOF == 1  
+    if(setup.wValueH == USB_DEVICE_DESCRIPTOR_TYPE) {
+        return USB_SendControl(TRANSFER_PGM, (const uint8_t*)&USB_DeviceDescriptorIAD, sizeof(USB_DeviceDescriptorIAD));
+    }
+#endif
+  if (setup.wValueH == USB_STRING_DESCRIPTOR_TYPE) { 
+      if (setup.wValueL == IPRODUCT) {
+          return USB_SendStringDescriptor(String_Product, strlen(String_Product), 0);
+      } 
+      else if (setup.wValueL == IMANUFACTURER) {
+          return USB_SendStringDescriptor(String_Manufacturer, strlen(String_Manufacturer), 0);
+      }        
+      else if (setup.wValueL == ISERIAL) {
+          return USB_SendStringDescriptor(String_Serial, strlen(String_Serial), 0);
+      }
+      else if(setup.wValueL >= STRING_ID_Base && setup.wValueL < (STRING_ID_Base + STRING_ID_Count)) {
+          return USB_SendStringDescriptor(String_indiv[setup.wValueL - STRING_ID_Base], strlen(String_indiv[setup.wValueL - STRING_ID_Base]), 0);
+      }                       
+  }
       // Check if this is a HID Class Descriptor request
       if (setup.bmRequestType != REQUEST_DEVICETOHOST_STANDARD_INTERFACE) { return 0; }
       if (setup.wValueH != HID_REPORT_DESCRIPTOR_TYPE) { return 0; }
@@ -118,41 +288,45 @@ static const byte PROGMEM _hidReportSDVX[] = {
 
       if (requestType == REQUEST_DEVICETOHOST_CLASS_INTERFACE)
       {
+        /* lightmode info */
+        if (setup.wValueH == HID_REPORT_TYPE_FEATURE && setup.wValueL == 7) {
+          uint8_t lm_data[2] = {7,0x00};
+          lm_data[1] = lightMode;
+          USB_SendControl(0, &lm_data, 2);
+          return true;
+        }
+        
         return true;
       }
       
       if (requestType == REQUEST_HOSTTODEVICE_CLASS_INTERFACE) {
         if (request == HID_SET_REPORT) {
-          if(setup.wValueH == HID_REPORT_TYPE_OUTPUT && setup.wLength == 6){
+          if(setup.wValueH == HID_REPORT_TYPE_OUTPUT && setup.wLength == 5){
             lastHidUpdate = millis();
-            USB_RecvControl(led_data, 6);
+            USB_RecvControl(led_data, 5);
             return true;
           }
-          else if (setup.wValueH == HID_REPORT_TYPE_OUTPUT && setup.wLength == 2){
-            USB_RecvControl(mode_data, 2);
-            updateLightMode();
-            return true;
+          else if (setup.wValueH == HID_REPORT_TYPE_FEATURE ) {
+          /* lightmode switch */
+            byte usb_data[5];
+            USB_RecvControl(usb_data, setup.wLength);
+            if (usb_data[0] == 7)
+            {
+              mode_data = usb_data[1];
+              return true;
+            }
           }
         }
       }
 
       return false;
     }
-    
-    uint8_t SDVXHID_::getShortName(char *name)
-    {
-      name[0] = 'S';
-      name[1] = 'D';
-      name[2] = 'V';
-      name[3] = 'X';
-      return 4;
-    }
 
 /* CUSTOM SDVX FUNCTIONS */
 
     void SDVXHID_::initRGB(){
-      FastLED.addLeds<WS2812, A1, GRB>(left_leds, SIDE_NUM_LEDS);
-      FastLED.addLeds<WS2812, A0, GRB>(right_leds, SIDE_NUM_LEDS);
+      FastLED.addLeds<WS2812, RGB_PIN_L, GRB>(left_leds, SIDE_NUM_LEDS);
+      FastLED.addLeds<WS2812, RGB_PIN_R, GRB>(right_leds, SIDE_NUM_LEDS);
       FastLED.setBrightness( 0xFF );
       for (int i=0; i<SIDE_NUM_LEDS;i++){
         left_leds[i] = CRGB::Black;
@@ -177,20 +351,21 @@ static const byte PROGMEM _hidReportSDVX[] = {
       return lastHidUpdate;
     }
     
-    void SDVXHID_::setLightMode(uint8_t mode){
-      if ((mode >= NUM_LIGHT_MODES) || (mode < 0)) {
-        lightMode = 2;
-        return;
+    uint8_t SDVXHID_::setLightMode(uint8_t mode){
+      uint8_t effective_mode = mode;
+      if ((effective_mode >= NUM_LIGHT_MODES)) {
+        effective_mode = 2;
       }
-      lightMode = mode;
+      lightMode = effective_mode;
+      mode_data = lightMode;
+      return lightMode;
     }
     
     void SDVXHID_::updateLightMode(){
-      uint8_t* mode = (uint8_t*)&(mode_data[1]);
-      if (*mode < NUM_LIGHT_MODES) {
-        setLightMode(*mode);
-        mode_data[1] = 0xFF;
-      }
+      uint8_t mode = mode_data;
+        if (mode != lightMode) {
+          mode_data = setLightMode(mode);
+        }
      }
 
 #define FADE_RATE 512
@@ -301,38 +476,51 @@ void SDVXHID_::update_knobs_param(){
       rgbR.setRGB(redR, greenR, blueR);
       setRGB(rgbL,rgbR);
     }
-     
-    void SDVXHID_::updateLeds(uint32_t buttonsState, bool invert, bool knobs, bool hid){
-      uint32_t* bitfield = (uint32_t*)&(led_data[1]);
-      uint32_t leds = (*bitfield|buttonsState);
+
+    static void SDVXHID_::write_button_leds(uint32_t buttonsState, bool invert, bool hid)
+    {
+      uint32_t bitfield = led_data[1];
+      //fix start button led position
+      if (bitfield & 0x40)
+      {
+        bitfield |= 0x100;
+      }
+      
+      uint32_t leds = buttonsState;
+      if (hid)
+        leds |= bitfield;
+        
       if (invert)
         leds = ~leds;
-      for(int i = 0; i < NUM_BUT_LEDS; i++) {
+
+      for(int i = 0; i < NUM_BUT_LEDS-1; i++) {
         if (leds>>i&1)
           digitalWrite(LightPins[i],HIGH);
         else
           digitalWrite(LightPins[i],LOW);
       }
-
+      //exception: start is button 9
+       if (leds>>8&1)
+          digitalWrite(LightPins[6],HIGH);
+        else
+          digitalWrite(LightPins[6],LOW); 
+    }
+    
+    void SDVXHID_::updateLeds(uint32_t buttonsState, bool invert, bool knobs, bool hid){
+      
+      write_button_leds(buttonsState, invert, hid);
       /* side leds */
       if (knobs || hid)
       {
         CRGB color;
-        color.setRGB(led_data[3],led_data[4],led_data[5]);      
+        color.setRGB(led_data[2],led_data[3],led_data[4]);      
         updateSideLeds(color,invert,knobs,hid);
       }
     }
 
     void SDVXHID_::rainbowLeds(uint32_t buttonsState){
-      uint32_t* bitfield = (uint32_t*)&(led_data[1]);
-      uint32_t leds = (*bitfield|buttonsState);
       
-      for(int i = 0; i < NUM_BUT_LEDS; i++) {
-        if (leds>>i&1)
-          digitalWrite(LightPins[i],HIGH);
-        else
-          digitalWrite(LightPins[i],LOW);
-      }
+      write_button_leds(buttonsState, false, true);
 
       /* side leds */    
       update_knobs_param();
@@ -342,7 +530,7 @@ void SDVXHID_::update_knobs_param(){
       if (knobs_param.brightness == 0)
       {
         CRGB color;
-        color.setRGB(led_data[3],led_data[4],led_data[5]);
+        color.setRGB(led_data[2],led_data[3],led_data[4]);
         setRGB(color, color);
       }
       else
@@ -357,7 +545,7 @@ void SDVXHID_::update_knobs_param(){
         else 
         {
           CRGB color;
-          color.setRGB(led_data[3],led_data[4],led_data[5]);
+          color.setRGB(led_data[2],led_data[3],led_data[4]);
           fill_solid(left_leds, SIDE_NUM_LEDS, color);
         }
         if (knobs_param.redFactor != 0)
@@ -368,7 +556,7 @@ void SDVXHID_::update_knobs_param(){
         else 
         {
           CRGB color;
-          color.setRGB(led_data[3],led_data[4],led_data[5]);
+          color.setRGB(led_data[2],led_data[3],led_data[4]);
           fill_solid(right_leds, SIDE_NUM_LEDS, color);
         }
       }
@@ -458,23 +646,15 @@ void SDVXHID_::update_knobs_param(){
     }
 
     void SDVXHID_::tcLeds(uint32_t buttonsState){
-      uint32_t* bitfield = (uint32_t*)&(led_data[1]);
-      uint32_t leds = (*bitfield|buttonsState);
-
-      /* button leds */
-      for(int i = 0; i < NUM_BUT_LEDS; i++) {
-        if (leds>>i&1)
-          digitalWrite(LightPins[i],HIGH);
-        else
-          digitalWrite(LightPins[i],LOW);
-      }
-
+      
+      write_button_leds(buttonsState, false, true);
+      
       /* side leds */
             
       update_knobs_param();                 
         
       CRGB color;
-      color.setRGB(led_data[3],led_data[4],led_data[5]);
+      color.setRGB(led_data[2],led_data[3],led_data[4]);
       if (knobs_param.brightness == 0)
       {
         setRGB(color, color);

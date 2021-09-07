@@ -3,18 +3,14 @@
 #include <EEPROM.h>
 #include "SDVXHID.h"
 
-/* 1 frame (as declared in SDVXHID.cpp) on highspeed USB spec is 125µs */
-#define REPORT_DELAY 1000
-#define MILLIDEBOUNCE 5
 SDVXHID_ SDVXHID;
 
 #define REACTIVE_FALLBACK ((millis()-SDVXHID.getLastHidUpdate()) > 3000)
 /* Buttons + Lights declarations */
-uint8_t LightPins[] = {7,10,11,12,13,8,9};
-//start a b c d fx-l fx-r service test
-uint8_t ButtonPins[] = {0,3,4,5,6,1,2,A3,A2};
-uint8_t PotPins[] = {A5,A4};
-//uint8_t RGBPins[] = {A1,A0}; //must be changed directly inside SDVXHID.cpp in initRGB() method
+//a b c d fx-l fx-r service test start (must keep this order to be compatible with konami spoof)
+uint8_t ButtonPins[] = {BUT_PIN_A,BUT_PIN_B,BUT_PIN_C,BUT_PIN_D,BUT_PIN_FXL,BUT_PIN_FXR,BUT_PIN_SERVICE,BUT_PIN_TEST,BUT_PIN_START};
+uint8_t LightPins[] = {LED_PIN_A,LED_PIN_B,LED_PIN_C,LED_PIN_D,LED_PIN_FXL,LED_PIN_FXR,LED_PIN_START};
+uint8_t PotPins[] = {POT_PIN_L,POT_PIN_R};
 CRGB left_leds[SIDE_NUM_LEDS];
 CRGB right_leds[SIDE_NUM_LEDS];
 
@@ -39,7 +35,7 @@ void setup() {
   
   uint8_t lightMode;
   EEPROM.get(0, lightMode);
-  if (lightMode < 0 || lightMode >= NUM_LIGHT_MODES)
+  if (lightMode >= NUM_LIGHT_MODES)
     lightMode = 2;
   SDVXHID.setLightMode(lightMode);
 
@@ -47,11 +43,11 @@ void setup() {
   
   //boot animation
   SDVXHID.setRGB(CRGB::Blue, CRGB::Blue);
-  uint16_t anim[] = {1, 2, 4, 8, 16, 64, 32, 0};
+  uint16_t anim[] = {256, 1, 2, 4, 8, 32, 16, 0};
   animate(anim, 8, 100);
   animate(anim, 8, 100);
   SDVXHID.setRGB(CRGB::Red, CRGB::Red);
-  uint16_t anim2[] = {2+4+8+16, 1+32+64};
+  uint16_t anim2[] = {1+2+4+8, 16+32+256};
   animate(anim2, 2, 500);
   animate(anim2, 2, 500);
   SDVXHID.setRGB(0, 0);
@@ -86,10 +82,14 @@ void loop() {
   {
     SDVXHID.sendState(buttonsState, encL, encR);
     lastReport = micros();
+
+    //check for HID-requested lightmode change
+    SDVXHID.updateLightMode();
   }  
   
   /* LAMPS */
   uint8_t mode = SDVXHID.getLightMode();
+
   /* mixed mode will behave sometimes like HID, sometimes like reactive */
   if (mode == 2){
       if (REACTIVE_FALLBACK)
@@ -97,6 +97,7 @@ void loop() {
       else
         mode = 1;
   }
+
   switch (mode)
   {
     /* Reactive mode, locally determined lamp data */
@@ -127,16 +128,16 @@ void loop() {
       break;
   }
 
-  /* MANUAL LIGHTMODE UPDATE */
-  if ( buttonsState & 128 ) {
-    if ( (buttonsState & 2) && (modeChanged == false)) {
+  /* MANUAL LIGHTMODE UPDATE (service + a) */
+  if ( buttonsState & 64 ) {
+    if ( (buttonsState & 1) && (modeChanged == false)) {
       modeChanged = true;
       uint8_t mode = SDVXHID.getLightMode()+1;
       if (mode == NUM_LIGHT_MODES) mode = 0;
       SDVXHID.setLightMode(mode);
       EEPROM.put(0, mode);
     }
-    else if (!(buttonsState&2)) {
+    else if (!(buttonsState&1)) {
       modeChanged = false;
     }
   }
